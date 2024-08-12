@@ -1,5 +1,4 @@
-﻿  glm.cpp
-  MeshLoader.cpp
+﻿  MeshLoader.cpp
 D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(3039,17): warning C4018: '>=': errata corrispondenza tra signed e unsigned
 D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(3134,17): warning C4018: '>=': errata corrispondenza tra signed e unsigned
 D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(5176,45): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
@@ -36,8 +35,8 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2074,1): warning C4
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2015): message : durante la compilazione della funzione membro 'void Model<Vertex>::loadModelOBJ(std::string)' di modello classe
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2329): message : vedere il riferimento all'istanza 'void Model<Vertex>::loadModelOBJ(std::string)' della funzione modello di cui è in corso la compilazione
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2325): message : durante la compilazione della funzione membro 'void Model<Vertex>::init(BaseProject *,VertexDescriptor *,std::string,ModelType)' di modello classe
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(144): message : vedere il riferimento all'istanza 'void Model<Vertex>::init(BaseProject *,VertexDescriptor *,std::string,ModelType)' della funzione modello di cui è in corso la compilazione
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(48): message : vedere il riferimento all'istanza 'Model<Vertex>' di modello classe di cui è in corso la compilazione
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(167): message : vedere il riferimento all'istanza 'void Model<Vertex>::init(BaseProject *,VertexDescriptor *,std::string,ModelType)' della funzione modello di cui è in corso la compilazione
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(61): message : vedere il riferimento all'istanza 'Model<Vertex>' di modello classe di cui è in corso la compilazione
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2102,1): warning C4267: 'argomento': conversione da 'size_t' a 'const unsigned long'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2083): message : durante la compilazione della funzione membro 'void Model<Vertex>::loadModelGLTF(std::string,bool)' di modello classe
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2331): message : vedere il riferimento all'istanza 'void Model<Vertex>::loadModelGLTF(std::string,bool)' della funzione modello di cui è in corso la compilazione
@@ -46,6 +45,4 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2156,1): warning C4
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2170,1): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2184,1): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2198,1): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
-  Generazione del codice in corso...
-LINK : warning LNK4098: la libreria predefinita 'MSVCRT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
   ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe
