@@ -10,12 +10,14 @@
 //        vec4  : alignas(16)
 //        mat3  : alignas(16)
 //        mat4  : alignas(16)
-// Example:
+
+/********************Uniform Blocks********************/
+// Example
 struct UniformBlock {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-// The vertices data structures
+/********************The vertices data structures********************/
 // Example
 struct Vertex {
 	glm::vec3 pos;
@@ -23,33 +25,49 @@ struct Vertex {
 };
 
 
-
-
-
 // MAIN ! 
 class MeshLoader : public BaseProject {
 	protected:
 
-	// Current aspect ratio (used by the callback that resized the window
-	float Ar;
+	//CAMERA PARAMETERS
+	const float FOVy = glm::radians(90.0f);
+	const float nearPlane = 0.1f;
+	const float farPlane = 100.0f;
+	float Ar;		// Current aspect ratio (used by the callback that resized the window
 
-	// Descriptor Layouts ["classes" of what will be passed to the shaders]
+	glm::mat4 Prj;
+	glm::vec3 camTarget = glm::vec3(0, 0, 0);
+	glm::vec3 camPos = camTarget + glm::vec3(6, 3, 10) / 2.0f;
+	glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
+
+	
+	
+
+	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSL;
 
-	// Vertex formats
+
+	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VD;
 
-	// Pipelines [Shader couples]
+
+	//********************PIPELINES [Shader couples]
 	Pipeline P;
+
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
-	// Models
+	//********************MODELS
 	Model<Vertex> M1, M2, M3, M4;
-	// Descriptor sets
+
+
+	//********************DESCRIPTOR SETS
 	DescriptorSet DS1, DS2, DS3, DS4;
-	// Textures
+
+
+	//********************TEXTURES
 	Texture T1, T2;
+
 	
 	// C++ storage for uniform variables
 	UniformBlock ubo1, ubo2, ubo3, ubo4;
@@ -71,6 +89,10 @@ class MeshLoader : public BaseProject {
 		setsInPool = 4;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
+
+		//TRYING TO MOVE CAMERA
+		Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+		Prj[1][1] *= -1;
 	}
 	
 	// What to do when the window changes size
@@ -81,7 +103,7 @@ class MeshLoader : public BaseProject {
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
-		// Descriptor Layouts [what will be passed to the shaders]
+		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
 		DSL.init(this, {
 					// this array contains the bindings:
 					// first  element : the binding number
@@ -93,7 +115,7 @@ class MeshLoader : public BaseProject {
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 				});
 
-		// Vertex descriptors
+		// Vertex descriptors INITIALIZATION
 		VD.init(this, {
 				  // this array contains the bindings
 				  // first  element : the binding number
@@ -128,7 +150,8 @@ class MeshLoader : public BaseProject {
 				         sizeof(glm::vec2), UV}
 				});
 
-		// Pipelines [Shader couples]
+
+		// Pipelines INITIALIZATION [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will
@@ -150,13 +173,12 @@ class MeshLoader : public BaseProject {
 					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
 		M4.indices = {0, 1, 2,    1, 3, 2};
 		M4.initMesh(this, &VD);
-		
+
 		// Create the textures
 		// The second parameter is the file name
 		T1.init(this,   "textures/Checker.png");
 		T2.init(this,   "textures/Textures_Food.png");
-		
-		// Init local variables
+
 	}
 	
 	// Here you create your pipelines and Descriptor Sets!
@@ -187,6 +209,8 @@ class MeshLoader : public BaseProject {
 					{0, UNIFORM, sizeof(UniformBlock), nullptr},
 					{1, TEXTURE, 0, &T1}
 				});
+
+
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
@@ -200,6 +224,7 @@ class MeshLoader : public BaseProject {
 		DS2.cleanup();
 		DS3.cleanup();
 		DS4.cleanup();
+
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -210,7 +235,7 @@ class MeshLoader : public BaseProject {
 		// Cleanup textures
 		T1.cleanup();
 		T2.cleanup();
-		
+
 		// Cleanup models
 		M1.cleanup();
 		M2.cleanup();
@@ -219,9 +244,9 @@ class MeshLoader : public BaseProject {
 		
 		// Cleanup descriptor set layouts
 		DSL.cleanup();
-		
+
 		// Destroies the pipelines
-		P.destroy();		
+		P.destroy();	
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -265,6 +290,7 @@ class MeshLoader : public BaseProject {
 		M4.bind(commandBuffer);
 		vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(M4.indices.size()), 1, 0, 0, 0);
+
 	}
 
 	// Here is where you update the uniforms.
@@ -293,16 +319,30 @@ class MeshLoader : public BaseProject {
 		
 		// Parameters
 		// Camera FOV-y, Near Plane and Far Plane
-		const float FOVy = glm::radians(90.0f);
-		const float nearPlane = 0.1f;
-		const float farPlane = 100.0f;
+		//const float FOVy = glm::radians(90.0f);
+		//const float nearPlane = 0.1f;
+		//const float farPlane = 100.0f;
 		
-		glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-		Prj[1][1] *= -1;
-		glm::vec3 camTarget = glm::vec3(0,0,0);
-		glm::vec3 camPos    = camTarget + glm::vec3(6,3,10) / 2.0f;
-		glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0,1,0));
+		//glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+		//Prj[1][1] *= -1;
+		//glm::vec3 camTarget = glm::vec3(0,0,0);
+		//glm::vec3 camPos    = camTarget + glm::vec3(6,3,10) / 2.0f;
+		//glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0,1,0));
 
+
+		//PROVO AD INTEGRARE UN CAMBIO DI CAMERA
+		const float ROT_SPEED = glm::radians(120.0f);
+		const float MOVE_SPEED = 2.0f;
+
+		View = glm::rotate(glm::mat4(1), ROT_SPEED * r.x * deltaT,
+			glm::vec3(1, 0, 0)) * View;
+		View = glm::rotate(glm::mat4(1), ROT_SPEED * r.y * deltaT,
+			glm::vec3(0, 1, 0)) * View;
+		View = glm::rotate(glm::mat4(1), -ROT_SPEED * r.z * deltaT,
+			glm::vec3(0, 0, 1)) * View;
+		View = glm::translate(glm::mat4(1), -glm::vec3(
+			MOVE_SPEED * m.x * deltaT, MOVE_SPEED * m.y * deltaT, -MOVE_SPEED * m.z * deltaT))
+			* View;
 
 		glm::mat4 World;
 
@@ -325,6 +365,8 @@ class MeshLoader : public BaseProject {
 				glm::scale(glm::mat4(1), glm::vec3(5.0f));
 		ubo4.mvpMat = Prj * View * World;
 		DS4.map(currentImage, &ubo4, sizeof(ubo4), 0);
+		
+
 	}	
 };
 
