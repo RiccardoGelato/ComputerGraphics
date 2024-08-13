@@ -1,5 +1,5 @@
 // This has been adapted from the Vulkan tutorial
-
+#define GLM_ENABLE_EXPERIMENTAL
 #include "Starter.hpp"
 
 // The uniform buffer objects data structures
@@ -94,19 +94,16 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLCar;
 	DescriptorSetLayout DSLGlobal;
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
-	DescriptorSetLayout DSL;
 	DescriptorSetLayout DSLEmission;
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDCar;
 	VertexDescriptor VDBlinn;
-	VertexDescriptor VD;
 	VertexDescriptor VDEmission;
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PCar;
 	Pipeline PBlinn;
-	Pipeline P;
 	Pipeline PEmission;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
@@ -114,10 +111,8 @@ class MeshLoader : public BaseProject {
 	//********************MODELS
 	Model MCar;
 	Model Mship;
-	
-	Model<Vertex> M1, M2, M3, M4;
 
-	Model<Vertex> Msun;
+	Model Msun;
 	Texture Tsun;
 	DescriptorSet DSsun;
 
@@ -146,9 +141,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 5;
-		DPSZs.texturesInPool = 2;
-		DPSZs.setsInPool = 3;
+		DPSZs.uniformBlocksInPool = 6;
+		DPSZs.texturesInPool = 6;
+		DPSZs.setsInPool = 4;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 
@@ -226,7 +221,6 @@ class MeshLoader : public BaseProject {
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
 		PCar.init(this, &VDCar, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLCar});
-		P.init(this, &VD, "shaders/ShaderVert.spv", "shaders/ShaderFrag.spv", {&DSL});
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
 
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn});
@@ -240,24 +234,18 @@ class MeshLoader : public BaseProject {
 		
 		MCar.init(this, &VDCar, "Models/Car.mgcg", MGCG);
 		Mship.init(this, &VDBlinn, "models/X-WING-baker.obj", OBJ);
-		M1.init(this,   &VD, "Models/Cube.obj", OBJ);
-		M2.init(this,   &VD, "Models/Sphere.gltf", GLTF);
-		M3.init(this,   &VD, "Models/dish.005_Mesh.098.mgcg", MGCG);
 		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 
-		// Creates a mesh with direct enumeration of vertices and indices
+		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
 					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
 		M4.indices = {0, 1, 2,    1, 3, 2};
-		M4.initMesh(this, &VD);
+		M4.initMesh(this, &VD);*/
 
 		// Create the textures
+		// The second parameter is the file name
 		TCar.init(this, "textures/CarTexture.png");
 		Tship.init(this, "textures/XwingColors.png");
-		
-		// The second parameter is the file name
-		T1.init(this,   "textures/Checker.png");
-		T2.init(this,   "textures/Textures_Food.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 
 	}
@@ -267,36 +255,12 @@ class MeshLoader : public BaseProject {
 		// This creates a new pipeline (with the current surface), using its shaders
 		PCar.create();
 		PBlinn.create();
-		P.create();
 		PEmission.create();
 
 		// Here you define the data set
-		DS1.init(this, &DSL, {
-		// the second parameter, is a pointer to the Uniform Set Layout of this set
-		// the last parameter is an array, with one element per binding of the set.
-		// first  elmenet : the binding number
-		// second element : UNIFORM or TEXTURE (an enum) depending on the type
-		// third  element : only for UNIFORMs, the size of the corresponding C++ object. For texture, just put 0
-		// fourth element : only for TEXTUREs, the pointer to the corresponding texture object. For uniforms, use nullptr
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
-		DS2.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
-		DS3.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T2}
-				});
-		DS4.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
 		DSsun.init(this, &DSLEmission, { &Tsun });
 		DSGlobal.init(this, &DSLGlobal, {});
 		DSship.init(this, &DSLBlinn, {&Tship});
-
 		DSCar.init(this, &DSLCar, {&TCar});
 	}
 
@@ -306,10 +270,12 @@ class MeshLoader : public BaseProject {
 		// Cleanup pipelines
 		PCar.cleanup();
 		PBlinn.cleanup();
+		PEmission.cleanup();
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
 		DSship.cleanup();
+		DSsun.cleanup();
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -322,15 +288,20 @@ class MeshLoader : public BaseProject {
 
 		Tship.cleanup();
 		Mship.cleanup();
+
+		Tsun.cleanup();
+		Msun.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
 		DSLCar.cleanup();
 		DSLBlinn.cleanup();
+		DSLEmission.cleanup();
 		
 		// Destroies the pipelines
 		PCar.destroy();	
 		PBlinn.destroy();
+		PEmission.destroy();
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -354,11 +325,22 @@ class MeshLoader : public BaseProject {
 		DSCar.bind(commandBuffer, PCar, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
+
+		PEmission.bind(commandBuffer);
+		Msun.bind(commandBuffer);
+		DSsun.bind(commandBuffer, PEmission, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
 	}
 
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
+
+		//SUN PRAMAETERS
+		const float turnTime = 72.0f;
+		const float angTurnTimeFact = 2.0f * M_PI / turnTime;
+
 		//CONSTANT MOVEMENT PARAMETERS
 		const float ROT_SPEED = glm::radians(120.0f);
 		const float MOVE_SPEED = 2.0f;
@@ -408,10 +390,9 @@ class MeshLoader : public BaseProject {
 		//GLOBAL PARAMETERS ******************************************************************************************** */
 		GlobalUniformBufferObject gubo{};
 
-		float angTurnTimeFact = 0.5f; //TEMPORANEO
 		float cTime = glfwGetTime();	//TEMPORANEO
 		
-		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)) * cos(cTime * angTurnTimeFact), sin(glm::radians(135.0f)), cos(glm::radians(135.0f)) * sin(cTime * angTurnTimeFact));
+		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)) * cos(cTime * angTurnTimeFact), cos(glm::radians(135.0f)) * sin(cTime * angTurnTimeFact),0);
 		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.eyePos = glm::vec3(glm::inverse(View) * glm::vec4(0, 0, 0, 1));
 
@@ -469,6 +450,10 @@ class MeshLoader : public BaseProject {
 
 		blinnMatParUbo.Power = 200.0;
 		DSship.map(currentImage, &blinnMatParUbo, 2);
+
+		EmissionUniformBufferObject emissionUbo{};
+		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir * 40.0f) * baseTr;
+		DSsun.map(currentImage, &emissionUbo, 0);
 		
 	}	
 
