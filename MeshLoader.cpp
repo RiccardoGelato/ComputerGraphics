@@ -86,16 +86,22 @@ struct EmissionVertex {
 // MAIN ! 
 class MeshLoader : public BaseProject {
 	protected:
+	//SYSTEM PARAMETERS
+		bool debounce = false;	//avoid multiple key press
+		int curDebounce = 0;
 
 	//CAMERA PARAMETERS
+		float Ar;	// Current aspect ratio
+		int cameraType = 0;	//0 = camera look at, 1 = camera look in direction
+		
+		//CONSTANTS
 		const float FOVy = glm::radians(90.0f);
 		const float nearPlane = 0.1f;
-		const float farPlane = 100.0f;
-		float Ar;	// Current aspect ratio
-
-		//CONSTANTS
+		const float farPlane = 500.0f;
+		
 		const float ROT_SPEED_CAMERA = glm::radians(120.0f);
 		const float fixedCamDist = 10.0f;	//distanza fissa del target
+		const float PilotDist = 0.0f;	//distanza del pilota dal target
 		const float lambdaCam = 10.0f;		//costante per l'esponenziale della camera
 
 	//CAR PARAMETERS
@@ -399,7 +405,27 @@ class MeshLoader : public BaseProject {
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
-		
+
+		//CHANGING CAMERA ******************************************************************************************** */		
+		if(glfwGetKey(window, GLFW_KEY_P)) {
+			if(!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_SPACE;
+				
+				if(cameraType == 0){
+					cameraType = 1;
+				}
+				else{
+					cameraType = 0;
+				}
+			}
+		} else {
+			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
 		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f);
@@ -408,7 +434,11 @@ class MeshLoader : public BaseProject {
 		getSixAxis(deltaT, m, r, fire);
 		
 		/* CAMERA MOVEMENT ******************************************************************************************** */
-		View = LookAt(Pos, r, deltaT);
+		if(cameraType == 0){
+			View = LookAt(Pos, r, deltaT);
+		}else{
+			View = LookInDirection(Pos, r, deltaT);
+		}
 		
 		//GLOBAL PARAMETERS ******************************************************************************************** */
 		GlobalUniformBufferObject gubo{};
@@ -531,6 +561,24 @@ class MeshLoader : public BaseProject {
 		return M;
 	}
 
+	//LOOK IN DIRECTION MATRIX
+	glm::mat4 MakeViewProjectionLookInDirection(glm::vec3 Pos, float Yaw, float Pitch, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
+
+		glm::mat4 M = glm::mat4(1.0f);
+
+		M = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+
+		glm::mat4 MT = glm::translate(glm::mat4(1.0f), glm::vec3(-Pos[0], -Pos[1], -Pos[2]));
+		glm::mat4 MYaw = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0, -1, 0));
+		glm::mat4 MPitch = glm::rotate(glm::mat4(1.0f), Pitch, glm::vec3(-1, 0, 0));
+		glm::mat4 MRoll = glm::rotate(glm::mat4(1.0f), Roll, glm::vec3(0, 0, -1));
+		glm::mat4 MS = glm::scale(glm::mat4(1.0), glm::vec3(1,-1,1));
+
+		M = M * MS * MRoll * MPitch * MYaw * MT;
+
+		return M;
+	}
+
 	//CAMERA LOOK AT FUNCTION
 	glm::mat4 LookAt(glm::vec3 Pos, glm::vec3 r, float deltaT) {
 
@@ -554,7 +602,39 @@ class MeshLoader : public BaseProject {
 		dampedCamPos = CamPos * (1 - exp(-lambdaCam * deltaT)) + dampedCamPos * exp(-lambdaCam * deltaT); 
 		
 		//Creo la matrice di view e projection
-		return MakeViewProjectionLookAt(dampedCamPos, CamTarget, glm::vec3(0,1,0), 0.0f, glm::radians(90.0f), Ar, 0.1f, 500.0f);
+		return MakeViewProjectionLookAt(dampedCamPos, CamTarget, glm::vec3(0,1,0), 0.0f, FOVy, Ar, nearPlane, farPlane);
+	}
+
+	//CAMERA IN DIRECTION FUNCTION
+	glm::mat4 LookInDirection(glm::vec3 Pos, glm::vec3 r, float deltaT) {
+
+		glm::vec3 CamPos = Pos;
+
+		float forwardOffset = -0.45f;	//offset rispetto al centro dell'auto
+		float upwardOffset = 0.75f;	//altezza della camera
+		float lateralOffset = 0.25f; 
+		
+		//Calcolo la posizione della camera
+		glm::vec3 CamTarget = Pos + carDirection * forwardOffset 
+								  + glm::vec3(0, upwardOffset, 0) 
+								  + glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffset;
+
+		static float camYaw = glm::radians(45.0f);
+    	static float camPitch = glm::radians(30.0f);
+
+		//Calcolo Yaw e Pitch alla camera
+		camYaw += r.y * ROT_SPEED_CAMERA * deltaT;
+		camPitch += r.x * ROT_SPEED_CAMERA * deltaT;
+
+		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
+
+		//Calcolo la posizione della camera
+		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw, glm::vec3(0,1,0)) * 
+                                   glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
+                                   glm::vec4(0,0,PilotDist,1)); 
+		
+		//Creo la matrice di view e projection
+		return MakeViewProjectionLookInDirection(CamPos, camYaw - carYaw, camPitch, 0.0f, FOVy, Ar, nearPlane, farPlane); //using carYaw with camYaw to maintain the relative angle of the camera
 	}
 };
 
