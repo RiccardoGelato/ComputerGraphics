@@ -3,7 +3,8 @@
 
 // The attributes associated with each vertex.
 // Their type and location must match the definition given in the
-// corresponding Vertex Descriptor, and in turn, with the CPP data structurelayout(location = 0) in vec3 inPosition;
+// corresponding Vertex Descriptor, and in turn, with the CPP data structure
+layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inNorm;
 layout(location = 2) in vec2 inUV;
 
@@ -17,19 +18,20 @@ layout(location = 2) out vec2 fragUV;
 // are used. Note that the definition must match the one used in the CPP code
 const int NSHIP=16;
 layout(set = 1, binding = 0) uniform UniformBufferObject {
-	mat4 mvpMat[NSHIP];
-	mat4 mMat[NSHIP];
-	mat4 nMat[NSHIP];
+	mat4 mvpMat;
+	mat4 mMat;
+	mat4 nMat;
 } ubo;
 
 // Here the shader simply computes clipping coordinates, and passes to the Fragment Shader
 // the position of the point in World Space, the transformed direction of the normal vector,
-// and the untouched (but interpolated) UV coordinatesvoid main() {
+// and the untouched (but interpolated) UV coordinates
+void main() {
 	int i = gl_InstanceIndex ;
 	// Clipping coordinates must be returned in global variable gl_Posision
-	gl_Position = ubo.mvpMat[i] * vec4(inPosition, 1.0);
+	gl_Position = ubo.mvpMat * vec4(inPosition, 1.0);
 	// Here the value of the out variables passed to the Fragment shader are computed
-	fragPos = (ubo.mMat[i] * vec4(inPosition, 1.0)).xyz;
-	fragNorm = (ubo.nMat[i] * vec4(inNorm, 0.0)).xyz;
+	fragPos = (ubo.mMat * vec4(inPosition, 1.0)).xyz;
+	fragNorm = (ubo.nMat * vec4(inNorm, 0.0)).xyz;
 	fragUV = inUV;
 }
