@@ -42,9 +42,23 @@ struct GlobalUniformBufferObject {
 	alignas(16) glm::vec3 eyePos;
 };
 
+//SUN
 
 struct EmissionUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
+};
+
+//HEADLIGHTS
+
+struct SpotUniformBufferObject {
+	alignas(16) glm::vec3 lightDir;
+	alignas(16) glm::vec3 lightPos[2];
+	alignas(16) glm::vec4 lightColor;
+	alignas(4) float cosIn;
+	alignas(4) float cosOut;
+	alignas(16) glm::vec3 eyePos;
+	alignas(16) glm::vec4 eyeDir;
+	alignas(4) float lightOn;
 };
 
 /********************The vertices data structures********************/
@@ -95,6 +109,7 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLGlobal;
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
+	//DescriptorSetLayout DSLSpot;
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDCar;
@@ -121,6 +136,7 @@ class MeshLoader : public BaseProject {
 	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
 	DescriptorSet DSship;
+	//DescriptorSet DSSpot;
 
 	//********************TEXTURES
 	Texture TCar;
@@ -141,9 +157,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 6;
+		DPSZs.uniformBlocksInPool = 7;
 		DPSZs.texturesInPool = 6;
-		DPSZs.setsInPool = 4;
+		DPSZs.setsInPool = 5;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 
@@ -180,6 +196,9 @@ class MeshLoader : public BaseProject {
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
 		});
+		/*DSLSpot.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(SpotUniformBufferObject)}
+			});*/
 
 		// Vertex descriptors INITIALIZATION
 		VDCar.init(this, {
@@ -220,10 +239,10 @@ class MeshLoader : public BaseProject {
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
-		PCar.init(this, &VDCar, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLCar});
+		PCar.init(this, &VDCar, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLCar/*, &DSLSpot*/});
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
 
-		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn});
+		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -262,6 +281,7 @@ class MeshLoader : public BaseProject {
 		DSGlobal.init(this, &DSLGlobal, {});
 		DSship.init(this, &DSLBlinn, {&Tship});
 		DSCar.init(this, &DSLCar, {&TCar});
+		//DSSpot.init(this, &DSLSpot, {});
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
@@ -276,6 +296,7 @@ class MeshLoader : public BaseProject {
 		DSCar.cleanup();
 		DSship.cleanup();
 		DSsun.cleanup();
+		//DSSpot.cleanup();
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -297,6 +318,7 @@ class MeshLoader : public BaseProject {
 		DSLCar.cleanup();
 		DSLBlinn.cleanup();
 		DSLEmission.cleanup();
+		//DSLSpot.cleanup();
 		
 		// Destroies the pipelines
 		PCar.destroy();	
@@ -313,6 +335,7 @@ class MeshLoader : public BaseProject {
 		PBlinn.bind(commandBuffer);
 		Mship.bind(commandBuffer);
 		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
+		//DSSpot.bind(commandBuffer, PBlinn, 0, currentImage);
 		DSship.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 						static_cast<uint32_t>(Mship.indices.size()), NSHIP, 0, 0, 0);	
@@ -322,6 +345,7 @@ class MeshLoader : public BaseProject {
 		PCar.bind(commandBuffer);
 		MCar.bind(commandBuffer);
 		DSGlobal.bind(commandBuffer, PCar, 0, currentImage);
+		//DSSpot.bind(commandBuffer, PCar, 0, currentImage);
 		DSCar.bind(commandBuffer, PCar, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
@@ -454,7 +478,24 @@ class MeshLoader : public BaseProject {
 		EmissionUniformBufferObject emissionUbo{};
 		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir * 40.0f) * baseTr;
 		DSsun.map(currentImage, &emissionUbo, 0);
-		
+/*
+		//SPOT PARAMETERS ********************************************************************************************
+
+		// updates global uniforms
+		SpotUniformBufferObject subo{};
+
+		//		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
+		for (int i = 0; i < 2; i++) {
+			subo.lightColor = glm::vec4(1);
+			subo.lightDir = carDirection;
+			subo.lightPos[i] = glm::vec3(0, 1, 0);
+		}
+		subo.cosIn = 0.3;
+		subo.cosOut = 0.4;
+
+		subo.eyePos = CamPos;
+		subo.lightOn = 1;
+		*/
 	}	
 
 
