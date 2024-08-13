@@ -17,9 +17,18 @@ struct UniformBlock {
 	alignas(16) glm::mat4 mvpMat;
 };
 
+struct EmissionUniformBufferObject {
+	alignas(16) glm::mat4 mvpMat;
+};
+
 /********************The vertices data structures********************/
 // Example
 struct Vertex {
+	glm::vec3 pos;
+	glm::vec2 UV;
+};
+
+struct EmissionVertex {
 	glm::vec3 pos;
 	glm::vec2 UV;
 };
@@ -45,20 +54,27 @@ class MeshLoader : public BaseProject {
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSL;
+	DescriptorSetLayout DSLEmission;
 
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VD;
+	VertexDescriptor VDEmission;
 
 
 	//********************PIPELINES [Shader couples]
 	Pipeline P;
+	Pipeline PEmission;
 
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	//********************MODELS
 	Model<Vertex> M1, M2, M3, M4;
+
+	Model<Vertex> Msun;
+	Texture Tsun;
+	DescriptorSet DSsun;
 
 
 	//********************DESCRIPTOR SETS
@@ -84,9 +100,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		uniformBlocksInPool = 4;
-		texturesInPool = 4;
-		setsInPool = 4;
+		uniformBlocksInPool = 5;
+		texturesInPool = 5;
+		setsInPool = 5;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 
@@ -114,6 +130,10 @@ class MeshLoader : public BaseProject {
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
 				});
+		DSLEmission.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
+					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
+			});
 
 		// Vertex descriptors INITIALIZATION
 		VD.init(this, {
@@ -149,6 +169,14 @@ class MeshLoader : public BaseProject {
 				  {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV),
 				         sizeof(glm::vec2), UV}
 				});
+		VDEmission.init(this, {
+				  {0, sizeof(EmissionVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+			}, {
+			  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(EmissionVertex, pos),
+					 sizeof(glm::vec3), POSITION},
+			  {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(EmissionVertex, UV),
+					 sizeof(glm::vec2), UV}
+			});
 
 
 		// Pipelines INITIALIZATION [Shader couples]
@@ -157,6 +185,7 @@ class MeshLoader : public BaseProject {
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
 		P.init(this, &VD, "shaders/ShaderVert.spv", "shaders/ShaderFrag.spv", {&DSL});
+		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -167,6 +196,7 @@ class MeshLoader : public BaseProject {
 		M1.init(this,   &VD, "Models/Cube.obj", OBJ);
 		M2.init(this,   &VD, "Models/Sphere.gltf", GLTF);
 		M3.init(this,   &VD, "Models/dish.005_Mesh.098.mgcg", MGCG);
+		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 
 		// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
@@ -178,6 +208,7 @@ class MeshLoader : public BaseProject {
 		// The second parameter is the file name
 		T1.init(this,   "textures/Checker.png");
 		T2.init(this,   "textures/Textures_Food.png");
+		Tsun.init(this, "textures/2k_sun.jpg");
 
 	}
 	
@@ -185,6 +216,7 @@ class MeshLoader : public BaseProject {
 	void pipelinesAndDescriptorSetsInit() {
 		// This creates a new pipeline (with the current surface), using its shaders
 		P.create();
+		PEmission.create();
 
 		// Here you define the data set
 		DS1.init(this, &DSL, {
@@ -209,6 +241,7 @@ class MeshLoader : public BaseProject {
 					{0, UNIFORM, sizeof(UniformBlock), nullptr},
 					{1, TEXTURE, 0, &T1}
 				});
+		DSsun.init(this, &DSLEmission, { &Tsun });
 
 
 	}
