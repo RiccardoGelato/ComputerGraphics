@@ -4,4 +4,6 @@ glslc CarShader.frag -o CarFrag.spv
 glslc CarShader.vert -o CarVert.spv
 glslc Shader.frag -o ShaderFrag.spv
 glslc Shader.vert -o ShaderVert.spv
+glslc BlinnShader.frag -o BlinnFrag.spv
+glslc BlinnShader.vert -o BlinnVert.spv
 cd..

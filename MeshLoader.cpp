@@ -12,17 +12,52 @@
 //        mat4  : alignas(16)
 
 /********************Uniform Blocks********************/
-// Example
-struct UniformBlock {
+//UNIFORM BUFFER - BLINN -
+#define NSHIP 16
+struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
+	alignas(16) glm::mat4 mMat;
+	alignas(16) glm::mat4 nMat;
 };
 
+struct BlinnMatParUniformBufferObject {
+	alignas(4)  float Power;
+};
+
+//UNIFORM BUFFER - CAR -
+struct CarUniformBufferObject {
+	alignas(16) glm::mat4 mvpMat;
+	alignas(16) glm::mat4 mMat;
+	alignas(16) glm::mat4 nMat;
+};
+
+struct CarMatParUniformBufferObject {
+	alignas(4)  float Power;
+};
+
+//UNIFORM BUFFER - GLOBAL -
+struct GlobalUniformBufferObject {
+	alignas(16) glm::vec3 lightDir;
+	alignas(16) glm::vec4 lightColor;
+	alignas(16) glm::vec3 eyePos;
+};
+
+
 /********************The vertices data structures********************/
-// Example
-struct Vertex {
+//VERTICES - CAR -
+struct CarVertex {
 	glm::vec3 pos;
+	glm::vec3 norm;
 	glm::vec2 UV;
 };
+
+//VERTICES - BLINN -
+struct BlinnVertex {
+	glm::vec3 pos;
+	glm::vec3 norm;
+	glm::vec2 UV;
+};
+
 
 
 // MAIN ! 
@@ -35,42 +70,48 @@ class MeshLoader : public BaseProject {
 	const float farPlane = 100.0f;
 	float Ar;		// Current aspect ratio (used by the callback that resized the window
 
+	//DISTANCE BETWEEN CAMERA AND CAR
 	glm::mat4 Prj;
 	glm::vec3 camTarget = glm::vec3(0, 0, 0);
 	glm::vec3 camPos = camTarget + glm::vec3(6, 3, 10) / 2.0f;
 	glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
 
-	
-	
+	//PARAMETRI PER LA POSIZIONE DELLA MACCHINA E BASE TR
+	glm::mat4 baseTr = glm::mat4(1.0f);	
+	glm::vec3 Pos = glm::vec3(0.0f, 0.0f, 0.0f);
+	float Yaw = 0.0f;
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
-	DescriptorSetLayout DSL;
-
+	DescriptorSetLayout DSLCar;
+	DescriptorSetLayout DSLGlobal;
+	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 
 	//********************VERTEX DESCRIPTOR
-	VertexDescriptor VD;
-
+	VertexDescriptor VDCar;
+	VertexDescriptor VDBlinn;
 
 	//********************PIPELINES [Shader couples]
-	Pipeline P;
-
+	Pipeline PCar;
+	Pipeline PBlinn;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
 	//********************MODELS
-	Model<Vertex> M1, M2, M3, M4;
-
+	Model MCar;
+	Model Mship;
+	
 
 	//********************DESCRIPTOR SETS
-	DescriptorSet DS1, DS2, DS3, DS4;
-
+	DescriptorSet DSCar;
+	DescriptorSet DSGlobal;
+	DescriptorSet DSship;
 
 	//********************TEXTURES
-	Texture T1, T2;
-
+	Texture TCar;
+	Texture Tship;
+	
 	
 	// C++ storage for uniform variables
-	UniformBlock ubo1, ubo2, ubo3, ubo4;
 
 	// Other application parameters
 
@@ -84,13 +125,13 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		uniformBlocksInPool = 4;
-		texturesInPool = 4;
-		setsInPool = 4;
+		DPSZs.uniformBlocksInPool = 5;
+		DPSZs.texturesInPool = 2;
+		DPSZs.setsInPool = 3;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 
-		//TRYING TO MOVE CAMERA
+		//PROJECTION MATRIX
 		Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 		Prj[1][1] *= -1;
 	}
@@ -104,59 +145,54 @@ class MeshLoader : public BaseProject {
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
 		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
-		DSL.init(this, {
-					// this array contains the bindings:
-					// first  element : the binding number
-					// second element : the type of element (buffer or texture)
-					//                  using the corresponding Vulkan constant
-					// third  element : the pipeline stage where it will be used
-					//                  using the corresponding Vulkan constant
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS},
-					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}
+
+		DSLGlobal.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(GlobalUniformBufferObject), 1}
 				});
+
+		DSLCar.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(CarUniformBufferObject), 1},
+					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+					{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(CarMatParUniformBufferObject), 1}
+				});
+		DSLBlinn.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
+		});
 
 		// Vertex descriptors INITIALIZATION
-		VD.init(this, {
-				  // this array contains the bindings
-				  // first  element : the binding number
-				  // second element : the stride of this binging
-				  // third  element : whether this parameter change per vertex or per instance
-				  //                  using the corresponding Vulkan constant
-				  {0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX}
+		VDCar.init(this, {
+				  {0, sizeof(CarVertex), VK_VERTEX_INPUT_RATE_VERTEX}
 				}, {
-				  // this array contains the location
-				  // first  element : the binding number
-				  // second element : the location number
-				  // third  element : the offset of this element in the memory record
-				  // fourth element : the data type of the element
-				  //                  using the corresponding Vulkan constant
-				  // fifth  elmenet : the size in byte of the element
-				  // sixth  element : a constant defining the element usage
-				  //                   POSITION - a vec3 with the position
-				  //                   NORMAL   - a vec3 with the normal vector
-				  //                   UV       - a vec2 with a UV coordinate
-				  //                   COLOR    - a vec4 with a RGBA color
-				  //                   TANGENT  - a vec4 with the tangent vector
-				  //                   OTHER    - anything else
-				  //
-				  // ***************** DOUBLE CHECK ********************
-				  //    That the Vertex data structure you use in the "offsetoff" and
-				  //	in the "sizeof" in the previous array, refers to the correct one,
-				  //	if you have more than one vertex format!
-				  // ***************************************************
-				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, pos),
+				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CarVertex, pos),
 				         sizeof(glm::vec3), POSITION},
-				  {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, UV),
+				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CarVertex, norm),
+				         sizeof(glm::vec3), NORMAL},
+				  {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(CarVertex, UV),
 				         sizeof(glm::vec2), UV}
 				});
-
+		
+		VDBlinn.init(this, {
+				  {0, sizeof(BlinnVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+				}, {
+				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, pos),
+				         sizeof(glm::vec3), POSITION},
+				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, norm),
+				         sizeof(glm::vec3), NORMAL},
+				  {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(BlinnVertex, UV),
+				         sizeof(glm::vec2), UV}
+				});
+		
 
 		// Pipelines INITIALIZATION [Shader couples]
 		// The second parameter is the pointer to the vertex definition
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
-		P.init(this, &VD, "shaders/ShaderVert.spv", "shaders/ShaderFrag.spv", {&DSL});
+		PCar.init(this, &VDCar, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLCar});
+
+		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn});
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
 
@@ -164,67 +200,37 @@ class MeshLoader : public BaseProject {
 		// The second parameter is the pointer to the vertex definition for this model
 		// The third parameter is the file name
 		// The last is a constant specifying the file type: currently only OBJ or GLTF
-		M1.init(this,   &VD, "Models/Cube.obj", OBJ);
-		M2.init(this,   &VD, "Models/Sphere.gltf", GLTF);
-		M3.init(this,   &VD, "Models/dish.005_Mesh.098.mgcg", MGCG);
-
-		// Creates a mesh with direct enumeration of vertices and indices
-		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
-					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
-		M4.indices = {0, 1, 2,    1, 3, 2};
-		M4.initMesh(this, &VD);
-
+		
+		MCar.init(this, &VDCar, "Models/Car.mgcg", MGCG);
+		Mship.init(this, &VDBlinn, "models/X-WING-baker.obj", OBJ);
 		// Create the textures
-		// The second parameter is the file name
-		T1.init(this,   "textures/Checker.png");
-		T2.init(this,   "textures/Textures_Food.png");
-
+		TCar.init(this, "textures/CarTexture.png");
+		Tship.init(this, "textures/XwingColors.png");
+		
 	}
 	
 	// Here you create your pipelines and Descriptor Sets!
 	void pipelinesAndDescriptorSetsInit() {
 		// This creates a new pipeline (with the current surface), using its shaders
-		P.create();
+		PCar.create();
+		PBlinn.create();
 
-		// Here you define the data set
-		DS1.init(this, &DSL, {
-		// the second parameter, is a pointer to the Uniform Set Layout of this set
-		// the last parameter is an array, with one element per binding of the set.
-		// first  elmenet : the binding number
-		// second element : UNIFORM or TEXTURE (an enum) depending on the type
-		// third  element : only for UNIFORMs, the size of the corresponding C++ object. For texture, just put 0
-		// fourth element : only for TEXTUREs, the pointer to the corresponding texture object. For uniforms, use nullptr
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
-		DS2.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
-		DS3.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T2}
-				});
-		DS4.init(this, &DSL, {
-					{0, UNIFORM, sizeof(UniformBlock), nullptr},
-					{1, TEXTURE, 0, &T1}
-				});
+		DSGlobal.init(this, &DSLGlobal, {});
+		DSship.init(this, &DSLBlinn, {&Tship});
 
-
+		DSCar.init(this, &DSLCar, {&TCar});
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
 	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 	void pipelinesAndDescriptorSetsCleanup() {
 		// Cleanup pipelines
-		P.cleanup();
+		PCar.cleanup();
+		PBlinn.cleanup();
 
-		// Cleanup datasets
-		DS1.cleanup();
-		DS2.cleanup();
-		DS3.cleanup();
-		DS4.cleanup();
-
+		DSGlobal.cleanup();
+		DSCar.cleanup();
+		DSship.cleanup();
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -232,21 +238,20 @@ class MeshLoader : public BaseProject {
 	// You also have to destroy the pipelines: since they need to be rebuilt, they have two different
 	// methods: .cleanup() recreates them, while .destroy() delete them completely
 	void localCleanup() {
-		// Cleanup textures
-		T1.cleanup();
-		T2.cleanup();
+		TCar.cleanup();
+		MCar.cleanup();
 
-		// Cleanup models
-		M1.cleanup();
-		M2.cleanup();
-		M3.cleanup();
-		M4.cleanup();
+		Tship.cleanup();
+		Mship.cleanup();
 		
 		// Cleanup descriptor set layouts
-		DSL.cleanup();
-
+		DSLGlobal.cleanup();
+		DSLCar.cleanup();
+		DSLBlinn.cleanup();
+		
 		// Destroies the pipelines
-		P.destroy();	
+		PCar.destroy();	
+		PBlinn.destroy();
 	}
 	
 	// Here it is the creation of the command buffer:
@@ -254,121 +259,202 @@ class MeshLoader : public BaseProject {
 	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		// binds the pipeline
-		P.bind(commandBuffer);
-		// For a pipeline object, this command binds the corresponing pipeline to the command buffer passed in its parameter
-
-		// binds the data set
-		DS1.bind(commandBuffer, P, 0, currentImage);
-		// For a Dataset object, this command binds the corresponing dataset
-		// to the command buffer and pipeline passed in its first and second parameters.
-		// The third parameter is the number of the set being bound
-		// As described in the Vulkan tutorial, a different dataset is required for each image in the swap chain.
-		// This is done automatically in file Starter.hpp, however the command here needs also the index
-		// of the current image in the swap chain, passed in its last parameter
-					
-		// binds the model
-		M1.bind(commandBuffer);
-		// For a Model object, this command binds the corresponing index and vertex buffer
-		// to the command buffer passed in its parameter
 		
-		// record the drawing command in the command buffer
+		PBlinn.bind(commandBuffer);
+		Mship.bind(commandBuffer);
+		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
+		DSship.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(M1.indices.size()), 1, 0, 0, 0);
-		// the second parameter is the number of indexes to be drawn. For a Model object,
-		// this can be retrieved with the .indices.size() method.
+						static_cast<uint32_t>(Mship.indices.size()), NSHIP, 0, 0, 0);	
+		
 
-		DS2.bind(commandBuffer, P, 0, currentImage);
-		M2.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(M2.indices.size()), 1, 0, 0, 0);
-		DS3.bind(commandBuffer, P, 0, currentImage);
-		M3.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(M3.indices.size()), 1, 0, 0, 0);
-		DS4.bind(commandBuffer, P, 0, currentImage);
-		M4.bind(commandBuffer);
-		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(M4.indices.size()), 1, 0, 0, 0);
 
+		PCar.bind(commandBuffer);
+		MCar.bind(commandBuffer);
+		DSGlobal.bind(commandBuffer, PCar, 0, currentImage);
+		DSCar.bind(commandBuffer, PCar, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
 	}
 
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
-		// Standard procedure to quit when the ESC key is pressed
+		//CONSTANT MOVEMENT PARAMETERS
+		const float ROT_SPEED = glm::radians(120.0f);
+		const float MOVE_SPEED = 2.0f;
+		
+		//CAMERA PARAMETERS
+		glm::vec3 CamPos = Pos;
+		glm::vec3 CamTarget = Pos;
+		static glm::vec3 dampedCamPos = CamPos;
+		static float camYaw = glm::radians(45.0f);
+    	static float camPitch = glm::radians(30.0f);
+
+		//CONSTANT CAMERA PARAMETERS
+		const float fixedCamDist = 10.0f;
+		const float lambdaCam = 10.0f;
+
+		//ESC BUTTON ******************************************************************************************** */
 		if(glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 			glfwSetWindowShouldClose(window, GL_TRUE);
 		}
 		
-		// Integration with the timers and the controllers
+		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
-		glm::vec3 m = glm::vec3(0.0f), r = glm::vec3(0.0f);
+		glm::vec3 m = glm::vec3(0.0f);
+		glm::vec3 r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
-		// getSixAxis() is defined in Starter.hpp in the base class.
-		// It fills the float point variable passed in its first parameter with the time
-		// since the last call to the procedure.
-		// It fills vec3 in the second parameters, with three values in the -1,1 range corresponding
-		// to motion (with left stick of the gamepad, or ASWD + RF keys on the keyboard)
-		// It fills vec3 in the third parameters, with three values in the -1,1 range corresponding
-		// to motion (with right stick of the gamepad, or Arrow keys + QE keys on the keyboard, or mouse)
-		// If fills the last boolean variable with true if fire has been pressed:
-		//          SPACE on the keyboard, A or B button on the Gamepad, Right mouse button
-
 		
-		// Parameters
-		// Camera FOV-y, Near Plane and Far Plane
-		//const float FOVy = glm::radians(90.0f);
-		//const float nearPlane = 0.1f;
-		//const float farPlane = 100.0f;
+		/* CAMERA MOVEMENT ******************************************************************************************** */
+		//Calcolo Yaw e Pitch alla camera
+		camYaw += r.y * ROT_SPEED * deltaT;
+		camPitch += r.x * ROT_SPEED * deltaT;
+		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
+
+		//Calcolo la posizione della camera (deve sempre putare al target)
+		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw, glm::vec3(0,1,0)) * 
+                                   glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
+                                   glm::vec4(0,0,fixedCamDist,1));
 		
-		//glm::mat4 Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-		//Prj[1][1] *= -1;
-		//glm::vec3 camTarget = glm::vec3(0,0,0);
-		//glm::vec3 camPos    = camTarget + glm::vec3(6,3,10) / 2.0f;
-		//glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0,1,0));
-
-
-		//PROVO AD INTEGRARE UN CAMBIO DI CAMERA
-		const float ROT_SPEED = glm::radians(120.0f);
-		const float MOVE_SPEED = 2.0f;
-
-		View = glm::rotate(glm::mat4(1), ROT_SPEED * r.x * deltaT,
-			glm::vec3(1, 0, 0)) * View;
-		View = glm::rotate(glm::mat4(1), ROT_SPEED * r.y * deltaT,
-			glm::vec3(0, 1, 0)) * View;
-		View = glm::rotate(glm::mat4(1), -ROT_SPEED * r.z * deltaT,
-			glm::vec3(0, 0, 1)) * View;
-		View = glm::translate(glm::mat4(1), -glm::vec3(
-			MOVE_SPEED * m.x * deltaT, MOVE_SPEED * m.y * deltaT, -MOVE_SPEED * m.z * deltaT))
-			* View;
-
-		glm::mat4 World;
-
-		World = glm::translate(glm::mat4(1), glm::vec3(-3, 0, 0));
-		ubo1.mvpMat = Prj * View * World;
-		DS1.map(currentImage, &ubo1, sizeof(ubo1), 0);
-		// the .map() method of a DataSet object, requires the current image of the swap chain as first parameter
-		// the second parameter is the pointer to the C++ data structure to transfer to the GPU
-		// the third parameter is its size
-		// the fourth parameter is the location inside the descriptor set of this uniform block
-		World = glm::translate(glm::mat4(1), glm::vec3(3, 0, 0));
-		ubo2.mvpMat = Prj * View * World;
-		DS2.map(currentImage, &ubo2, sizeof(ubo2), 0);
+		//rendo il movimento della camera più fluido con un esponenziale
+		dampedCamPos = CamPos * (1 - exp(-lambdaCam * deltaT)) + dampedCamPos * exp(-lambdaCam * deltaT); 
 		
-		World = glm::scale(glm::mat4(1), glm::vec3(10.0f));
-		ubo3.mvpMat = Prj * View * World;
-		DS3.map(currentImage, &ubo3, sizeof(ubo3), 0);
-
-		World = glm::translate(glm::mat4(1), glm::vec3(0, -5, 0)) *
-				glm::scale(glm::mat4(1), glm::vec3(5.0f));
-		ubo4.mvpMat = Prj * View * World;
-		DS4.map(currentImage, &ubo4, sizeof(ubo4), 0);
+		//creo la matrice di view e projection
+		glm::mat4 M = MakeViewProjectionLookAt(dampedCamPos, CamTarget, glm::vec3(0,1,0), 0.0f, glm::radians(90.0f), Ar, 0.1f, 500.0f);
 		
+		View = M;
+		
+		//GLOBAL PARAMETERS ******************************************************************************************** */
+		GlobalUniformBufferObject gubo{};
 
+		float angTurnTimeFact = 0.5f; //TEMPORANEO
+		float cTime = glfwGetTime();	//TEMPORANEO
+		
+		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)) * cos(cTime * angTurnTimeFact), sin(glm::radians(135.0f)), cos(glm::radians(135.0f)) * sin(cTime * angTurnTimeFact));
+		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.eyePos = glm::vec3(glm::inverse(View) * glm::vec4(0, 0, 0, 1));
+
+		DSGlobal.map(currentImage, &gubo, 0);
+
+		//CAR PARMAT ******************************************************************************************** */
+		CarMatParUniformBufferObject uboCarMatPar{};
+		uboCarMatPar.Power = 200.0;
+		DSCar.map(currentImage, &uboCarMatPar, 2);
+		
+		CarUniformBufferObject uboCar{};
+
+		/* CAR MOVEMENT ******************************************************************************************** */
+		
+		//CONSTANTI PARAMETRI MACCHINA
+		const float R = 2.5f;
+		const float W = 1.25f;
+
+		//PARAMETRI DELLA MACCHINA NORMALI
+		static float carYaw = 0.0f;
+		glm::vec3 carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
+
+		//angolo di sterzata
+		float steeringAngle = m.x * ROT_SPEED * 20 * deltaT * m.z;
+		
+		//raggio di curvatura
+		float turningRadius = R / tan(steeringAngle);
+
+		Pos += m.z * carDirection * MOVE_SPEED * deltaT;
+		carYaw -= m.z * (MOVE_SPEED / turningRadius) * deltaT * m.z;
+		//carYaw -= m.x * ROT_SPEED * deltaT * m.z; //m.z serve per far girare solo in caso accelleri la macchina
+
+		//rotazione iniziale
+		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, -1, 0));
+		
+		//calcolo la dinamica della macchina
+		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
+		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), Pos);
+
+		//calcolo le matrici del modello
+		uboCar.mMat = translationMatrix * initialRotation * rotationMatrix;
+		uboCar.mvpMat = View * uboCar.mMat;
+		uboCar.nMat = glm::transpose(glm::inverse(uboCar.mMat));
+		
+		DSCar.map(currentImage, &uboCar, 0);
+		
+		/* BLINN POSITION ******************************************************************************************** */
+		BlinnUniformBufferObject blinnUbo{};
+		BlinnMatParUniformBufferObject blinnMatParUbo{};
+
+		blinnUbo.mMat = glm::mat4(1);
+		blinnUbo.mvpMat = View;
+		blinnUbo.nMat = glm::mat4(1);
+		DSship.map(currentImage, &blinnUbo, 0);
+
+		blinnMatParUbo.Power = 200.0;
+		DSship.map(currentImage, &blinnMatParUbo, 2);
+		
 	}	
+
+
+	//PHYSICS FUNCTIONS
+	//modify pos and dir (position(x,y,z) and direction(x,y,z)) of the car based on the steering angle and the speed
+	void updateCarPositionAndDirection(glm::vec3& pos, glm::vec3& dir, float spe, float steAng, float L, float deltaT) {
+		float R; // Turning radius
+		float omega;  // Angular velocity
+
+		//new direction vector
+		float cosOmegaT;
+		float sinOmegaT;
+		glm::vec3 newDir;
+
+		R = L / std::tan(steAng);
+		omega = spe / R;
+
+		
+		cosOmegaT = std::cos(omega * deltaT);
+		sinOmegaT = std::sin(omega * deltaT);
+		
+		
+		newDir.x = cosOmegaT * dir.x - sinOmegaT * dir.z;
+		newDir.z = sinOmegaT * dir.x + cosOmegaT * dir.z;
+		newDir.y = dir.y; // Assuming no change in the y-direction
+
+		// Normalization
+		newDir = glm::normalize(newDir);
+
+		// Update the position and direction
+		pos += newDir * spe * deltaT;
+		dir = newDir;
+	}
+
+	//Move the car, todo: implement dynamic
+	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {
+		glm::mat4 M = glm::mat4(1.0f);
+
+		glm::mat4 MT = glm::translate(glm::mat4(1.0f), glm::vec3(Pos[0], 0, Pos[2]));
+		glm::mat4 MYaw = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0, 1, 0));
+		glm::mat4 MS = glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1));
+		M = MT * MYaw * MS;
+
+		//std::cout << "Pos: " << Pos[0] << " " << Pos[1] << " " << Pos[2] << std::endl;
+
+		return MT;
+	}
+
+	//LookAt Camera function
+	glm::mat4 MakeViewProjectionLookAt(glm::vec3 Pos, glm::vec3 Target, glm::vec3 Up, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
+
+		glm::mat4 M = glm::mat4(1.0f);
+		M = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+
+		glm::mat4 Mv = glm::rotate(glm::mat4(1.0), -Roll, glm::vec3(0, 0, 1)) * glm::scale(glm::mat4(1.0), glm::vec3(1,-1,1))* glm::lookAt(Pos, Target, glm::vec3(Up[0], Up[1], Up[2]));
+		M = M * Mv;
+
+		return M;
+	}
 };
+
+
+
+	
 
 
 // This is the main: probably you do not need to touch this!
