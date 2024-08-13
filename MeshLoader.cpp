@@ -88,21 +88,42 @@ class MeshLoader : public BaseProject {
 	protected:
 
 	//CAMERA PARAMETERS
-	const float FOVy = glm::radians(90.0f);
-	const float nearPlane = 0.1f;
-	const float farPlane = 100.0f;
-	float Ar;		// Current aspect ratio (used by the callback that resized the window
+		const float FOVy = glm::radians(90.0f);
+		const float nearPlane = 0.1f;
+		const float farPlane = 100.0f;
+		float Ar;	// Current aspect ratio
 
-	//DISTANCE BETWEEN CAMERA AND CAR
-	glm::mat4 Prj;
-	glm::vec3 camTarget = glm::vec3(0, 0, 0);
-	glm::vec3 camPos = camTarget + glm::vec3(6, 3, 10) / 2.0f;
-	glm::mat4 View = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
+		//CONSTANTS
+		const float ROT_SPEED_CAMERA = glm::radians(120.0f);
+		const float fixedCamDist = 10.0f;	//distanza fissa del target
+		const float lambdaCam = 10.0f;		//costante per l'esponenziale della camera
 
-	//PARAMETRI PER LA POSIZIONE DELLA MACCHINA E BASE TR
-	glm::mat4 baseTr = glm::mat4(1.0f);	
-	glm::vec3 Pos = glm::vec3(0.0f, 0.0f, 0.0f);
-	float Yaw = 0.0f;
+	//CAR PARAMETERS
+		float carYaw = 0.0f;
+		float decayFactor = 0.0f;
+		float turningRadius = 0.0f;
+		float steeringAngle = 0.0f;
+
+		glm::vec3 carDirection;
+		glm::vec3 Pos = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+
+		//MATRICES FOR THE MODEL
+		glm::mat4 initialRotation;
+		glm::mat4 rotationMatrix;
+		glm::mat4 translationMatrix;
+
+		//CONSTANTS
+		const float R = 2.5f;	//lunghezza dell'auto
+		const float W = 1.25f;	//larghezza dell'auto
+		const float MAX_SPEED = 10.0f;
+		const float ACC_CAR = 20.0f;
+		const float FRICTION = 5.0f;
+		const float ROT_SPEED_CAR = glm::radians(120.0f) * 10.0f;
+
+	//MATRICES
+		glm::mat4 View;
+		glm::mat4 baseTr = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSLCar;
@@ -162,10 +183,6 @@ class MeshLoader : public BaseProject {
 		DPSZs.setsInPool = 5;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
-
-		//PROJECTION MATRIX
-		Prj = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-		Prj[1][1] *= -1;
 	}
 	
 	// What to do when the window changes size
@@ -360,11 +377,9 @@ class MeshLoader : public BaseProject {
 	// Here is where you update the uniforms.
 	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
-
-		//SUN PRAMAETERS
+		//SUN PRAMETERS
 		const float turnTime = 72.0f;
 		const float angTurnTimeFact = 2.0f * M_PI / turnTime;
-
 		//CONSTANT MOVEMENT PARAMETERS
 		const float ROT_SPEED = glm::radians(120.0f);
 		const float MOVE_SPEED = 2.0f;
@@ -393,23 +408,7 @@ class MeshLoader : public BaseProject {
 		getSixAxis(deltaT, m, r, fire);
 		
 		/* CAMERA MOVEMENT ******************************************************************************************** */
-		//Calcolo Yaw e Pitch alla camera
-		camYaw += r.y * ROT_SPEED * deltaT;
-		camPitch += r.x * ROT_SPEED * deltaT;
-		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
-
-		//Calcolo la posizione della camera (deve sempre putare al target)
-		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw, glm::vec3(0,1,0)) * 
-                                   glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
-                                   glm::vec4(0,0,fixedCamDist,1));
-		
-		//rendo il movimento della camera più fluido con un esponenziale
-		dampedCamPos = CamPos * (1 - exp(-lambdaCam * deltaT)) + dampedCamPos * exp(-lambdaCam * deltaT); 
-		
-		//creo la matrice di view e projection
-		glm::mat4 M = MakeViewProjectionLookAt(dampedCamPos, CamTarget, glm::vec3(0,1,0), 0.0f, glm::radians(90.0f), Ar, 0.1f, 500.0f);
-		
-		View = M;
+		View = LookAt(Pos, r, deltaT);
 		
 		//GLOBAL PARAMETERS ******************************************************************************************** */
 		GlobalUniformBufferObject gubo{};
@@ -430,31 +429,41 @@ class MeshLoader : public BaseProject {
 		CarUniformBufferObject uboCar{};
 
 		/* CAR MOVEMENT ******************************************************************************************** */
-		
-		//CONSTANTI PARAMETRI MACCHINA
-		const float R = 2.5f;
-		const float W = 1.25f;
-
-		//PARAMETRI DELLA MACCHINA NORMALI
-		static float carYaw = 0.0f;
-		glm::vec3 carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
+		//direzione della macchina
+		carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
 
 		//angolo di sterzata
-		float steeringAngle = m.x * ROT_SPEED * 20 * deltaT * m.z;
+		steeringAngle = m.x * ROT_SPEED_CAR * deltaT * m.z;
 		
 		//raggio di curvatura
-		float turningRadius = R / tan(steeringAngle);
+		turningRadius = R / tan(steeringAngle);
 
-		Pos += m.z * carDirection * MOVE_SPEED * deltaT;
-		carYaw -= m.z * (MOVE_SPEED / turningRadius) * deltaT * m.z;
-		//carYaw -= m.x * ROT_SPEED * deltaT * m.z; //m.z serve per far girare solo in caso accelleri la macchina
+		//aggiorno la velocità e la limito ad una massima
+		Vel += m.z * carDirection * ACC_CAR * deltaT; 
+		if(glm::length(Vel) > MAX_SPEED) {
+			Vel = glm::normalize(Vel) * MAX_SPEED;
+		}
+
+		//aggiorno la posizione
+		Pos += Vel * deltaT;
+
+		//aggiorno la velocità con l'attrito
+		decayFactor = FRICTION * deltaT;
+		if (glm::length(Vel) > decayFactor) {
+			Vel = glm::normalize(Vel) * (glm::length(Vel) - decayFactor);
+		} else {
+			Vel = glm::vec3(0.0f);
+		}
+		
+		//aggiorno la posizione e la direzione della macchina
+		carYaw -= -m.z * (glm::length(Vel) / turningRadius) * deltaT;
 
 		//rotazione iniziale
-		glm::mat4 initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, -1, 0));
+		initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, -1, 0));
 		
 		//calcolo la dinamica della macchina
-		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
-		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), Pos);
+		rotationMatrix = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
+		translationMatrix = glm::translate(glm::mat4(1.0f), Pos);
 
 		//calcolo le matrici del modello
 		uboCar.mMat = translationMatrix * initialRotation * rotationMatrix;
@@ -498,38 +507,6 @@ class MeshLoader : public BaseProject {
 		*/
 	}	
 
-
-	//PHYSICS FUNCTIONS
-	//modify pos and dir (position(x,y,z) and direction(x,y,z)) of the car based on the steering angle and the speed
-	void updateCarPositionAndDirection(glm::vec3& pos, glm::vec3& dir, float spe, float steAng, float L, float deltaT) {
-		float R; // Turning radius
-		float omega;  // Angular velocity
-
-		//new direction vector
-		float cosOmegaT;
-		float sinOmegaT;
-		glm::vec3 newDir;
-
-		R = L / std::tan(steAng);
-		omega = spe / R;
-
-		
-		cosOmegaT = std::cos(omega * deltaT);
-		sinOmegaT = std::sin(omega * deltaT);
-		
-		
-		newDir.x = cosOmegaT * dir.x - sinOmegaT * dir.z;
-		newDir.z = sinOmegaT * dir.x + cosOmegaT * dir.z;
-		newDir.y = dir.y; // Assuming no change in the y-direction
-
-		// Normalization
-		newDir = glm::normalize(newDir);
-
-		// Update the position and direction
-		pos += newDir * spe * deltaT;
-		dir = newDir;
-	}
-
 	//Move the car, todo: implement dynamic
 	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {
 		glm::mat4 M = glm::mat4(1.0f);
@@ -539,12 +516,10 @@ class MeshLoader : public BaseProject {
 		glm::mat4 MS = glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1));
 		M = MT * MYaw * MS;
 
-		//std::cout << "Pos: " << Pos[0] << " " << Pos[1] << " " << Pos[2] << std::endl;
-
 		return MT;
 	}
 
-	//LookAt Camera function
+	//LOOK AT PROJECTION MATRIX
 	glm::mat4 MakeViewProjectionLookAt(glm::vec3 Pos, glm::vec3 Target, glm::vec3 Up, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
 
 		glm::mat4 M = glm::mat4(1.0f);
@@ -554,6 +529,32 @@ class MeshLoader : public BaseProject {
 		M = M * Mv;
 
 		return M;
+	}
+
+	//CAMERA LOOK AT FUNCTION
+	glm::mat4 LookAt(glm::vec3 Pos, glm::vec3 r, float deltaT) {
+
+		glm::vec3 CamPos = Pos;
+		glm::vec3 CamTarget = Pos;
+		static glm::vec3 dampedCamPos = CamPos;
+		static float camYaw = glm::radians(45.0f);
+    	static float camPitch = glm::radians(30.0f);
+
+		//Calcolo Yaw e Pitch alla camera
+		camYaw += r.y * ROT_SPEED_CAMERA * deltaT;
+		camPitch += r.x * ROT_SPEED_CAMERA * deltaT;
+		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
+
+		//Calcolo la posizione della camera (deve sempre putare al target)
+		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw, glm::vec3(0,1,0)) * 
+                                   glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
+                                   glm::vec4(0,0,fixedCamDist,1));
+		
+		//Rendo il movimento della camera più fluido con un esponenziale
+		dampedCamPos = CamPos * (1 - exp(-lambdaCam * deltaT)) + dampedCamPos * exp(-lambdaCam * deltaT); 
+		
+		//Creo la matrice di view e projection
+		return MakeViewProjectionLookAt(dampedCamPos, CamTarget, glm::vec3(0,1,0), 0.0f, glm::radians(90.0f), Ar, 0.1f, 500.0f);
 	}
 };
 
