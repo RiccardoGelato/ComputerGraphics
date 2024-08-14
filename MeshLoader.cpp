@@ -13,7 +13,7 @@
 
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
-#define NSHIP 16
+#define NLIGHTS 4
 struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 	alignas(16) glm::mat4 mMat;
@@ -24,22 +24,16 @@ struct BlinnMatParUniformBufferObject {
 	alignas(4)  float Power;
 };
 
-//UNIFORM BUFFER - CAR -
-struct CarUniformBufferObject {
-	alignas(16) glm::mat4 mvpMat;
-	alignas(16) glm::mat4 mMat;
-	alignas(16) glm::mat4 nMat;
-};
-
-struct CarMatParUniformBufferObject {
-	alignas(4)  float Power;
-};
-
 //UNIFORM BUFFER - GLOBAL -
 struct GlobalUniformBufferObject {
-	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec4 lightColor;
+	alignas(16) glm::vec3 lightDir[NLIGHTS];
+	alignas(16) glm::vec4 lightColor[NLIGHTS];
 	alignas(16) glm::vec3 eyePos;
+	alignas(16) glm::vec3 lightPos[NLIGHTS];
+	alignas(4) float cosIn;
+	alignas(4) float cosOut;
+	alignas(4) float lightOn;
+	alignas(4) float BDRFState;
 };
 
 //SUN
@@ -62,12 +56,6 @@ struct SpotUniformBufferObject {
 };
 
 /********************The vertices data structures********************/
-//VERTICES - CAR -
-struct CarVertex {
-	glm::vec3 pos;
-	glm::vec3 norm;
-	glm::vec2 UV;
-};
 
 //VERTICES - BLINN -
 struct BlinnVertex {
@@ -127,24 +115,25 @@ class MeshLoader : public BaseProject {
 		const float FRICTION = 5.0f;
 		const float ROT_SPEED_CAR = glm::radians(120.0f) * 10.0f;
 
+	//HEADLIGHTS
+		float lightOn;
+	//BDRF
+		float BDRFState;
+			
 	//MATRICES
 		glm::mat4 View;
 		glm::mat4 baseTr = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
-	DescriptorSetLayout DSLCar;
 	DescriptorSetLayout DSLGlobal;
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
-	//DescriptorSetLayout DSLSpot;
 
 	//********************VERTEX DESCRIPTOR
-	VertexDescriptor VDCar;
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
 
 	//********************PIPELINES [Shader couples]
-	Pipeline PCar;
 	Pipeline PBlinn;
 	Pipeline PEmission;
 
@@ -157,6 +146,10 @@ class MeshLoader : public BaseProject {
 	Model Msun;
 	Texture Tsun;
 	DescriptorSet DSsun;
+
+	Model Mmoon;
+	Texture Tmoon;
+	DescriptorSet DSmoon;
 
 
 	//********************DESCRIPTOR SETS
@@ -186,7 +179,7 @@ class MeshLoader : public BaseProject {
 		// Descriptor pool sizes
 		DPSZs.uniformBlocksInPool = 7;
 		DPSZs.texturesInPool = 6;
-		DPSZs.setsInPool = 5;
+		DPSZs.setsInPool = 6;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -199,6 +192,9 @@ class MeshLoader : public BaseProject {
 	// Here you load and setup all your Vulkan Models and Texutures.
 	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
+
+		lightOn = 1.0;
+		BDRFState = 1.0;
 		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
 
 		DSLGlobal.init(this, {
@@ -208,32 +204,13 @@ class MeshLoader : public BaseProject {
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
 			});
-
-		DSLCar.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(CarUniformBufferObject), 1},
-					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
-					{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(CarMatParUniformBufferObject), 1}
-				});
 		DSLBlinn.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
 		});
-		/*DSLSpot.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(SpotUniformBufferObject)}
-			});*/
 
 		// Vertex descriptors INITIALIZATION
-		VDCar.init(this, {
-				  {0, sizeof(CarVertex), VK_VERTEX_INPUT_RATE_VERTEX}
-				}, {
-				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CarVertex, pos),
-				         sizeof(glm::vec3), POSITION},
-				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(CarVertex, norm),
-				         sizeof(glm::vec3), NORMAL},
-				  {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(CarVertex, UV),
-				         sizeof(glm::vec2), UV}
-				});
 		
 		VDBlinn.init(this, {
 				  {0, sizeof(BlinnVertex), VK_VERTEX_INPUT_RATE_VERTEX}
@@ -262,9 +239,7 @@ class MeshLoader : public BaseProject {
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
-		PCar.init(this, &VDCar, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLCar/*, &DSLSpot*/});
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
-
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
 
 		// Models, textures and Descriptors (values assigned to the uniforms)
@@ -274,9 +249,10 @@ class MeshLoader : public BaseProject {
 		// The third parameter is the file name
 		// The last is a constant specifying the file type: currently only OBJ or GLTF
 		
-		MCar.init(this, &VDCar, "Models/Car.mgcg", MGCG);
+		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
 		Mship.init(this, &VDBlinn, "models/X-WING-baker.obj", OBJ);
 		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
+		Mmoon.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 
 		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
@@ -289,29 +265,28 @@ class MeshLoader : public BaseProject {
 		TCar.init(this, "textures/CarTexture.png");
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
+		Tmoon.init(this, "textures/moon.jfif");
 
 	}
 	
 	// Here you create your pipelines and Descriptor Sets!
 	void pipelinesAndDescriptorSetsInit() {
 		// This creates a new pipeline (with the current surface), using its shaders
-		PCar.create();
 		PBlinn.create();
 		PEmission.create();
 
 		// Here you define the data set
 		DSsun.init(this, &DSLEmission, { &Tsun });
+		DSmoon.init(this, &DSLEmission, { &Tmoon });
 		DSGlobal.init(this, &DSLGlobal, {});
 		DSship.init(this, &DSLBlinn, {&Tship});
-		DSCar.init(this, &DSLCar, {&TCar});
-		//DSSpot.init(this, &DSLSpot, {});
+		DSCar.init(this, &DSLBlinn, {&TCar});
 	}
 
 	// Here you destroy your pipelines and Descriptor Sets!
 	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 	void pipelinesAndDescriptorSetsCleanup() {
 		// Cleanup pipelines
-		PCar.cleanup();
 		PBlinn.cleanup();
 		PEmission.cleanup();
 
@@ -319,7 +294,7 @@ class MeshLoader : public BaseProject {
 		DSCar.cleanup();
 		DSship.cleanup();
 		DSsun.cleanup();
-		//DSSpot.cleanup();
+		//DSmoon.cleanup();
 	}
 
 	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
@@ -335,16 +310,17 @@ class MeshLoader : public BaseProject {
 
 		Tsun.cleanup();
 		Msun.cleanup();
+
+		//Tmoon.cleanup();
+		//Mmoon.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
-		DSLCar.cleanup();
 		DSLBlinn.cleanup();
 		DSLEmission.cleanup();
 		//DSLSpot.cleanup();
 		
 		// Destroies the pipelines
-		PCar.destroy();	
 		PBlinn.destroy();
 		PEmission.destroy();
 	}
@@ -358,18 +334,14 @@ class MeshLoader : public BaseProject {
 		PBlinn.bind(commandBuffer);
 		Mship.bind(commandBuffer);
 		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
-		//DSSpot.bind(commandBuffer, PBlinn, 0, currentImage);
 		DSship.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
-						static_cast<uint32_t>(Mship.indices.size()), NSHIP, 0, 0, 0);	
+						static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);	
 		
 
 
-		PCar.bind(commandBuffer);
 		MCar.bind(commandBuffer);
-		DSGlobal.bind(commandBuffer, PCar, 0, currentImage);
-		//DSSpot.bind(commandBuffer, PCar, 0, currentImage);
-		DSCar.bind(commandBuffer, PCar, 1, currentImage);
+		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
 
@@ -378,6 +350,11 @@ class MeshLoader : public BaseProject {
 		DSsun.bind(commandBuffer, PEmission, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 			static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
+
+		Mmoon.bind(commandBuffer);
+		DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
 	}
 
 	// Here is where you update the uniforms.
@@ -386,6 +363,7 @@ class MeshLoader : public BaseProject {
 		//SUN PRAMETERS
 		const float turnTime = 72.0f;
 		const float angTurnTimeFact = 2.0f * M_PI / turnTime;
+		static float cTime = 0.0;
 		//CONSTANT MOVEMENT PARAMETERS
 		const float ROT_SPEED = glm::radians(120.0f);
 		const float MOVE_SPEED = 2.0f;
@@ -426,6 +404,35 @@ class MeshLoader : public BaseProject {
 			}
 		}
 
+		//CHANGING HEADLIGHTS
+		if (glfwGetKey(window, GLFW_KEY_1)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_1;
+				lightOn = 1 - lightOn;
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_1) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+		//BDRF
+		if (glfwGetKey(window, GLFW_KEY_2)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_2;
+				BDRFState = 1 - BDRFState;
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_2) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
 		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f);
@@ -440,23 +447,14 @@ class MeshLoader : public BaseProject {
 			View = LookInDirection(Pos, r, deltaT);
 		}
 		
-		//GLOBAL PARAMETERS ******************************************************************************************** */
-		GlobalUniformBufferObject gubo{};
-
-		float cTime = glfwGetTime();	//TEMPORANEO
 		
-		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)) * cos(cTime * angTurnTimeFact), cos(glm::radians(135.0f)) * sin(cTime * angTurnTimeFact),0);
-		gubo.lightColor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.eyePos = glm::vec3(glm::inverse(View) * glm::vec4(0, 0, 0, 1));
-
-		DSGlobal.map(currentImage, &gubo, 0);
 
 		//CAR PARMAT ******************************************************************************************** */
-		CarMatParUniformBufferObject uboCarMatPar{};
+		BlinnMatParUniformBufferObject uboCarMatPar{};
 		uboCarMatPar.Power = 200.0;
 		DSCar.map(currentImage, &uboCarMatPar, 2);
 		
-		CarUniformBufferObject uboCar{};
+		BlinnUniformBufferObject uboCar{};
 
 		/* CAR MOVEMENT ******************************************************************************************** */
 		//direzione della macchina
@@ -514,9 +512,64 @@ class MeshLoader : public BaseProject {
 		blinnMatParUbo.Power = 200.0;
 		DSship.map(currentImage, &blinnMatParUbo, 2);
 
+		//GLOBAL PARAMETERS ******************************************************************************************** */
+		GlobalUniformBufferObject gubo{};
+
+		cTime = cTime + deltaT;
+		float forwardOffsetHeadLight = -1.3f;	//offset rispetto al centro dell'auto
+		float upwardOffsetHeadLight = 0.75f;	//altezza della camera
+		float lateralOffsetHeadLight = 0.25f;
+		float lateralOffsetHeadLight2 = -0.25f;
+
+
+		//SUN
+		gubo.lightDir[0] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
+		glm::vec4 sunColor;
+		sunColor = glm::vec4(0.5 + 0.5 * sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 1.0);
+		if (sunColor.y < 0) {
+			sunColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
+		}
+		gubo.lightColor[0] = sunColor;
+
+		gubo.eyePos = glm::vec3(glm::inverse(View) * glm::vec4(0, 0, 0, 1));
+
+		//HEADLIGHTS
+		gubo.lightDir[1] = carDirection;
+		gubo.lightColor[1] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos[1] = Pos + carDirection * forwardOffsetHeadLight
+			+ glm::vec3(0, upwardOffsetHeadLight, 0)
+			+ glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffsetHeadLight;
+		gubo.lightDir[2] = carDirection;
+		gubo.lightColor[2] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos[2] = Pos + carDirection * forwardOffsetHeadLight
+			+ glm::vec3(0, upwardOffsetHeadLight, 0)
+			+ glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffsetHeadLight2;
+
+		//MOON
+		gubo.lightDir[3] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
+		glm::vec4 moonColor;
+		moonColor = glm::vec4(0.5*(1 + sin(cTime * angTurnTimeFact)), 0.0, -sin(cTime * angTurnTimeFact), 1.0);
+		if (moonColor.z < 0) {
+			moonColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
+		}
+		gubo.lightColor[3] = moonColor;
+
+		gubo.cosIn = 0.96;
+		gubo.cosOut = 0.86;
+		gubo.lightOn = lightOn;
+		gubo.BDRFState = BDRFState;
+
+		DSGlobal.map(currentImage, &gubo, 0);
+
+		//SUNPARAMETERS
+
 		EmissionUniformBufferObject emissionUbo{};
-		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir * 40.0f) * baseTr;
+		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 40.0f) * baseTr;
 		DSsun.map(currentImage, &emissionUbo, 0);
+
+		EmissionUniformBufferObject moonUbo{};
+		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * -40.0f) * baseTr;
+		DSmoon.map(currentImage, &moonUbo, 0);
 /*
 		//SPOT PARAMETERS ********************************************************************************************
 
