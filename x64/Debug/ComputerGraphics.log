@@ -74,8 +74,6 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2767,45): warning C
           ]
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(3177,48): warning C4267: '=': conversione da 'size_t' a 'uint32_t'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(3305,33): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(365,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(557,1): warning C4305: '=': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(558,1): warning C4305: '=': troncamento da 'double' a 'float'
-LINK : warning LNK4098: la libreria predefinita 'MSVCRT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(382,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(416,15): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
   ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe
