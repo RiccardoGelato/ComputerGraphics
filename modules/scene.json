@@ -1,0 +1,23 @@
+{
+    "models":[
+        {"id": "M_strada_dritta", "model": "models/ROAD_DRITTA_1.mgcg", "format":"MGCG"},
+        {"id": "M_appartamento", "model": "models/APARTMENT.mgcg", "format":"MGCG"}
+    ],
+    "textures": [
+		    {"id": "T_strada_dritta", "texture": "textures/CityTexture.png"}
+    ],
+    "instances": [
+        {"id": "str1",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       20, 0, 0, 1]
+                    },
+        {"id": "str2",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                        0, 1, 0, 0,
+                        0, 0, 1, 0,
+                        0, 0, 20, 1]
+                        }
+    ]
+}
