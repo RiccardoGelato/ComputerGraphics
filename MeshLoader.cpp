@@ -1,9 +1,6 @@
 // This has been adapted from the Vulkan tutorial
 #define GLM_ENABLE_EXPERIMENTAL
-#define NSHIP 16
 #include "Starter.hpp"
-#include "modules/Scene.hpp"
-
 
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
@@ -80,7 +77,6 @@ class MeshLoader : public BaseProject {
 	//SYSTEM PARAMETERS
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
-		SceneProject scene;
 
 	//CAMERA PARAMETERS
 		float Ar;	// Current aspect ratio
@@ -132,18 +128,14 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLGlobal;
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
-	DescriptorSetLayout DSLScene;
-	//DescriptorSetLayout DSLSpot;
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
-	VertexDescriptor VDScene;
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PBlinn;
 	Pipeline PEmission;
-	Pipeline PScene;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
@@ -169,7 +161,13 @@ class MeshLoader : public BaseProject {
 	//********************TEXTURES
 	Texture TCar;
 	Texture Tship;
+	
+	
+	// C++ storage for uniform variables
 
+	// Other application parameters
+
+	// Here you set the main application parameters
 	void setWindowParameters() {
 		// window size, titile and initial background
 		windowWidth = 800;
@@ -179,9 +177,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool =11;//aumento di 2
-		DPSZs.texturesInPool = 8;//aumentato di 1
-		DPSZs.setsInPool = 8;//aumento di 1
+		DPSZs.uniformBlocksInPool = 7;
+		DPSZs.texturesInPool = 6;
+		DPSZs.setsInPool = 6;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -191,25 +189,22 @@ class MeshLoader : public BaseProject {
 		Ar = (float)w / (float)h;
 	}
 	
+	// Here you load and setup all your Vulkan Models and Texutures.
+	// Here you also create your Descriptor set layouts and load the shaders for the pipelines
 	void localInit() {
 
 		lightOn = 1.0;
 		BDRFState = 1.0;
 		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
+
 		DSLGlobal.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(GlobalUniformBufferObject), 1}
-		});
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(GlobalUniformBufferObject), 1}
+				});
 		DSLEmission.init(this, {
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
 			});
 		DSLBlinn.init(this, {
-			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
-			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
-			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
-		});
-
-		DSLScene.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
@@ -246,9 +241,14 @@ class MeshLoader : public BaseProject {
 		// be used in this pipeline. The first element will be set 0, and so on..
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
-		PScene.init(this, &VDScene, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
 
-		// Create models		
+		// Models, textures and Descriptors (values assigned to the uniforms)
+
+		// Create models
+		// The second parameter is the pointer to the vertex definition for this model
+		// The third parameter is the file name
+		// The last is a constant specifying the file type: currently only OBJ or GLTF
+		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
 		Mship.init(this, &VDBlinn, "models/X-WING-baker.obj", OBJ);
 		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
@@ -261,21 +261,19 @@ class MeshLoader : public BaseProject {
 		M4.initMesh(this, &VD);*/
 
 		// Create the textures
+		// The second parameter is the file name
 		TCar.init(this, "textures/CarTexture.png");
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 		Tmoon.init(this, "textures/moon.jfif");
-		
-		//INITIALIZE THE SCENE
-		scene.init(this, &VDScene, DSLScene, PScene, "modules/scene.json");
 
 	}
 	
+	// Here you create your pipelines and Descriptor Sets!
 	void pipelinesAndDescriptorSetsInit() {
 		// This creates a new pipeline (with the current surface), using its shaders
 		PBlinn.create();
 		PEmission.create();
-		PScene.create();
 
 		// Here you define the data set
 		DSsun.init(this, &DSLEmission, { &Tsun });
@@ -283,27 +281,26 @@ class MeshLoader : public BaseProject {
 		DSGlobal.init(this, &DSLGlobal, {});
 		DSship.init(this, &DSLBlinn, {&Tship});
 		DSCar.init(this, &DSLBlinn, {&TCar});
-		
-		scene.pipelinesAndDescriptorSetsInit(DSLScene);
-		
 	}
 
+	// Here you destroy your pipelines and Descriptor Sets!
+	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
 	void pipelinesAndDescriptorSetsCleanup() {
 		// Cleanup pipelines
 		PBlinn.cleanup();
 		PEmission.cleanup();
-		PScene.cleanup();
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
 		DSship.cleanup();
 		DSsun.cleanup();
-		DSmoon.cleanup();
-		
-		//SCENE CLEANUP
-		scene.pipelinesAndDescriptorSetsCleanup();
+		//DSmoon.cleanup();
 	}
 
+	// Here you destroy all the Models, Texture and Desc. Set Layouts you created!
+	// All the object classes defined in Starter.hpp have a method .cleanup() for this purpose
+	// You also have to destroy the pipelines: since they need to be rebuilt, they have two different
+	// methods: .cleanup() recreates them, while .destroy() delete them completely
 	void localCleanup() {
 		TCar.cleanup();
 		MCar.cleanup();
@@ -314,24 +311,23 @@ class MeshLoader : public BaseProject {
 		Tsun.cleanup();
 		Msun.cleanup();
 
-		Tmoon.cleanup();
-		Mmoon.cleanup();
+		//Tmoon.cleanup();
+		//Mmoon.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
 		DSLBlinn.cleanup();
 		DSLEmission.cleanup();
-		DSLScene.cleanup();
 		//DSLSpot.cleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
 		PEmission.destroy();
-		PScene.destroy();
-
-		//SCENE CLEANUP
-		scene.localCleanup();
 	}
+	
+	// Here it is the creation of the command buffer:
+	// You send to the GPU all the objects you want to draw,
+	// with their buffers and textures
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 		
@@ -355,16 +351,14 @@ class MeshLoader : public BaseProject {
 		vkCmdDrawIndexed(commandBuffer,
 			static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
 
-		//POPULATE SCENE
-		PScene.bind(commandBuffer);
-		scene.populateCommandBuffer(commandBuffer, currentImage, PScene, DSGlobal);
-
 		Mmoon.bind(commandBuffer);
 		DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 			static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
 	}
 
+	// Here is where you update the uniforms.
+	// Very likely this will be where you will be writing the logic of your application.
 	void updateUniformBuffer(uint32_t currentImage) {
 		//SUN PRAMETERS
 		const float turnTime = 72.0f;
@@ -576,26 +570,6 @@ class MeshLoader : public BaseProject {
 		EmissionUniformBufferObject moonUbo{};
 		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * -40.0f) * baseTr;
 		DSmoon.map(currentImage, &moonUbo, 0);
-
-		/* SCENE POSITION ******************************************************************************************** */
-        int i = 0;
-		for(const auto& instance : scene.instancesParsed) {
-            BlinnUniformBufferObject uboScene{};
-			BlinnMatParUniformBufferObject uboSceneMatPar{};
-
-			uboSceneMatPar.Power = 200.0;
-
-			uboScene.mMat = instance.second.transform;
-			uboScene.mvpMat = View * uboScene.mMat;
-			uboScene.nMat = glm::transpose(glm::inverse(uboCar.mMat));
-
-			scene.DSScene[i].map(currentImage, &uboScene, 0);
-			scene.DSScene[i].map(currentImage, &uboSceneMatPar, 2);
-
-			i++;
-        }
-    
-		
 /*
 		//SPOT PARAMETERS ********************************************************************************************
 
