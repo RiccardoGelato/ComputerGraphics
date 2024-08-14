@@ -138,7 +138,6 @@ class MeshLoader : public BaseProject {
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
-	VertexDescriptor VDScene;
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PBlinn;
@@ -246,7 +245,7 @@ class MeshLoader : public BaseProject {
 		// be used in this pipeline. The first element will be set 0, and so on..
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
-		PScene.init(this, &VDScene, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
+		PScene.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
@@ -267,7 +266,7 @@ class MeshLoader : public BaseProject {
 		Tmoon.init(this, "textures/moon.jfif");
 		
 		//INITIALIZE THE SCENE
-		scene.init(this, &VDScene, DSLScene, PScene, "modules/scene.json");
+		scene.init(this, &VDBlinn, DSLScene, PScene, "modules/scene.json");
 
 	}
 	
@@ -323,14 +322,16 @@ class MeshLoader : public BaseProject {
 		DSLEmission.cleanup();
 		DSLScene.cleanup();
 		//DSLSpot.cleanup();
+
+		//SCENE CLEANUP
+		scene.localCleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
 		PEmission.destroy();
 		PScene.destroy();
 
-		//SCENE CLEANUP
-		scene.localCleanup();
+		
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
