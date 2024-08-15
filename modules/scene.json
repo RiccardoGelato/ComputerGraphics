@@ -1,7 +1,10 @@
 {
     "models":[
         {"id": "M_strada_dritta", "model": "models/ROAD_DRITTA_1.mgcg", "format":"MGCG"},
-        {"id": "M_appartamento", "model": "models/APARTMENT.mgcg", "format":"MGCG"}
+        {"id": "M_appartamento", "model": "models/APARTMENT.mgcg", "format":"MGCG"},
+        {"id": "M_strada_curva", "model": "models/ROAD_CURVA.mgcg", "format":"MGCG"},
+        {"id": "M_strada_incrocio_3", "model": "models/ROAD_INCROCIO_A_TRE.mgcg", "format":"MGCG"},
+        {"id": "M_strada_incrocio_4", "model": "models/ROAD_INCROCIO_A_QUATTRO.mgcg", "format":"MGCG"}
     ],
     "textures": [
 		    {"id": "T_strada_dritta", "texture": "textures/CityTexture.png"}
@@ -11,13 +14,224 @@
         "transform": [ 1, 0, 0, 0,
                        0, 1, 0, 0,
                        0, 0, 1, 0,
-                       20, 0, 0, 1]
+                       15, 0, -15, 1]
                     },
         {"id": "str2",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
         "transform": [ 1, 0, 0, 0,
                        0, 1, 0, 0,
                        0, 0, 1, 0,
-                       0, 0, 20, 1]
+                       0, 0, -15, 1]
+                    },
+        {"id": "str3",   "model": "M_strada_curva",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       30, 0, -15, 1]
+                    },
+        {"id": "str4",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       30, 0, 15, 1]
+                    },
+        {"id": "str5",   "model": "M_strada_incrocio_3",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       30, 0, 30, 1]
+                    },
+        {"id": "str6",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       30, 0, 45, 1]
+                    },
+        {"id": "str7",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                        0, 1, 0, 0,
+                        -1, 0, 0, 0,
+                        30, 0, 60, 1]
+                    },
+        {"id": "str8",   "model": "M_strada_curva",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                        0, 1, 0, 0,
+                        -1, 0, 0, 0,
+                        30, 0, 75, 1]
+                    },
+        {"id": "str9",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       15, 0, 75, 1]
+                    },
+        {"id": "str10",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       0, 0, 75, 1]
+                    },
+        {"id": "str11",   "model": "M_strada_incrocio_3",   "texture": "T_strada_dritta",
+        "transform": [ -1, 0, 0, 0,
+                        0, 1, 0, 0,
+                        0, 0, -1, 0,
+                        -15, 0, 75, 1]
+                    },
+        {"id": "str12",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -30, 0, 75, 1]
+                    },
+        {"id": "str13",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -45, 0, 75, 1]
+                    },
+        {"id": "str14",   "model": "M_strada_curva",   "texture": "T_strada_dritta",
+        "transform": [ -1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, -1, 0,
+                       -60, 0, 75, 1]
+                    },
+        {"id": "str15",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -60, 0, 60, 1]
+                    },
+        {"id": "str16",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -60, 0, 45, 1]
+                    },
+        {"id": "str17",   "model": "M_strada_incrocio_3",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, -1, 0,
+                       0, 1, 0, 0,
+                       1, 0, 0, 0,
+                       -60, 0, 30, 1]
+                    },
+        {"id": "str18",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -60, 0, 15, 1]
+                    },
+        {"id": "str19",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -60, 0, 0, 1]
+                    },
+        {"id": "str20",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       30, 0, 0, 1]
+                },
+        {"id": "str21",   "model": "M_strada_curva",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, -1, 0,
+                       0, 1, 0, 0,
+                       1, 0, 0, 0,
+                       -60, 0, -15, 1]
+                    },
+        {"id": "str22",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -45, 0, -15, 1]
+                    },
+        {"id": "str23",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -30, 0, -15, 1]
+                    },
+        {"id": "str24",   "model": "M_strada_incrocio_3",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -15, 0, -15, 1]
+                    },
+        {"id": "str25",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       15, 0, 30, 1]
+                    },
+        {"id": "str26",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       0, 0, 30, 1]
+                    },
+        {"id": "str27",   "model": "M_strada_incrocio_4",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -15, 0, 30, 1]
+                    },
+        {"id": "str28",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -30, 0, 30, 1]
+                    },
+        {"id": "str29",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -45, 0, 30, 1]
+                    },
+        {"id": "str30",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -15, 0, 60, 1]
+                    },
+        {"id": "str31",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -15, 0, 45, 1]
+                    },
+        {"id": "str32",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -15, 0, 15, 1]
+                    },
+        {"id": "str33",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -15, 0, 0, 1]
+                    },
+        {"id": "pal1",   "model": "M_appartamento",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       0, 0, 0, 1]
+                    },
+        {"id": "pal2",   "model": "M_appartamento",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       15, 0, 15, 1]
+                    },
+        {"id": "pal3",   "model": "M_appartamento",   "texture": "T_strada_dritta",
+        "transform": [ 0, 0, 1, 0,
+                       0, 1, 0, 0,
+                       -1, 0, 0, 0,
+                       -30, 0, 45, 1]
+                    },
+        {"id": "pal4",   "model": "M_appartamento",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -45, 0, 60, 1]
                     }
+
     ]
 }

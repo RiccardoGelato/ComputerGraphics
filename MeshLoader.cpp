@@ -204,9 +204,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 15;//aumento di 2
-		DPSZs.texturesInPool = 10;//aumentato di 1
-		DPSZs.setsInPool = 12;//aumento di 1
+		DPSZs.uniformBlocksInPool = 85;//aumento di 2
+		DPSZs.texturesInPool = 44;//aumentato di 1
+		DPSZs.setsInPool = 47;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
