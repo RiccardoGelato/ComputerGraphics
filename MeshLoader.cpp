@@ -45,17 +45,20 @@ struct EmissionUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
 
-//HEADLIGHTS
+struct SunParUniformBufferObject {
+	alignas(4) float sinSun;
+	alignas(4) float isMoon;
+};
 
-struct SpotUniformBufferObject {
-	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec3 lightPos[2];
-	alignas(16) glm::vec4 lightColor;
-	alignas(4) float cosIn;
-	alignas(4) float cosOut;
-	alignas(16) glm::vec3 eyePos;
-	alignas(16) glm::vec4 eyeDir;
-	alignas(4) float lightOn;
+//SKY
+struct skyBoxUniformBufferObject {
+	alignas(16) glm::mat4 mvpMat;
+};
+
+struct SkyMatParUniformBufferObject {
+	alignas(4)  float Ang;
+	alignas(4)  float ShowCloud;
+	alignas(4)  float sinSun;
 };
 
 /********************The vertices data structures********************/
@@ -71,6 +74,9 @@ struct EmissionVertex {
 	glm::vec2 UV;
 };
 
+/*struct skyBoxVertex {
+	glm::vec3 pos;
+};*/
 
 
 
@@ -123,6 +129,8 @@ class MeshLoader : public BaseProject {
 		float lightOn;
 	//BDRF
 		float BDRFState;
+	//Clouds
+		float showClouds;
 			
 	//MATRICES
 		glm::mat4 View;
@@ -132,17 +140,21 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLGlobal;
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
+	DescriptorSetLayout DSLSunPar;
 	DescriptorSetLayout DSLScene;
-	//DescriptorSetLayout DSLSpot;
+	DescriptorSetLayout DSLskyBox;	// For skyBox
+	DescriptorSetLayout DSLskyBoxPar;	// For skyBox parameters
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
+	/*VertexDescriptor VDskyBox;*/
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PBlinn;
 	Pipeline PEmission;
 	Pipeline PScene;
+	Pipeline PskyBox;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
@@ -152,18 +164,21 @@ class MeshLoader : public BaseProject {
 
 	Model Msun;
 	Texture Tsun;
-	DescriptorSet DSsun;
+	DescriptorSet DSsun, DSsunPar;
 
 	Model Mmoon;
 	Texture Tmoon;
-	DescriptorSet DSmoon;
+	DescriptorSet DSmoon, DSmoonPar;
+
+	Model MskyBox;
+	Texture TskyBox, Tstars;
+	DescriptorSet DSskyBox, DSskyBoxPar;
 
 
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
 	DescriptorSet DSship;
-	//DescriptorSet DSSpot;
 
 	//********************TEXTURES
 	Texture TCar;
@@ -175,12 +190,12 @@ class MeshLoader : public BaseProject {
 		windowHeight = 600;
 		windowTitle = "Mesh Loader";
     	windowResizable = GLFW_TRUE;
-		initialBackgroundColor = {0.0f, 0.005f, 0.01f, 1.0f};
+		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool =11;//aumento di 2
-		DPSZs.texturesInPool = 8;//aumentato di 1
-		DPSZs.setsInPool = 8;//aumento di 1
+		DPSZs.uniformBlocksInPool =13;//aumento di 2
+		DPSZs.texturesInPool = 10;//aumentato di 1
+		DPSZs.setsInPool = 12;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -194,6 +209,7 @@ class MeshLoader : public BaseProject {
 
 		lightOn = 1.0;
 		BDRFState = 1.0;
+		showClouds = 1.0;
 		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
 		DSLGlobal.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(GlobalUniformBufferObject), 1}
@@ -202,6 +218,10 @@ class MeshLoader : public BaseProject {
 					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
 					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
 			});
+		DSLSunPar.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SunParUniformBufferObject), 1},
+			});
+
 		DSLBlinn.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
@@ -213,6 +233,17 @@ class MeshLoader : public BaseProject {
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
 		});
+
+		DSLskyBox.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
+					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
+		});
+
+		DSLskyBoxPar.init(this, {
+					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyMatParUniformBufferObject), 1},
+			});
+
 
 		// Vertex descriptors INITIALIZATION
 		
@@ -243,15 +274,19 @@ class MeshLoader : public BaseProject {
 		// Third and fourth parameters are respectively the vertex and fragment shaders
 		// The last array, is a vector of pointer to the layouts of the sets that will
 		// be used in this pipeline. The first element will be set 0, and so on..
-		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission });
+		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission, &DSLSunPar});
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
 		PScene.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
+		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
+		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
+			VK_CULL_MODE_BACK_BIT, false);
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
 		Mship.init(this, &VDBlinn, "models/X-WING-baker.obj", OBJ);
 		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 		Mmoon.init(this, &VDEmission, "models/Sphere.obj", OBJ);
+		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
 
 		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
@@ -264,6 +299,8 @@ class MeshLoader : public BaseProject {
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 		Tmoon.init(this, "textures/moon.jfif");
+		TskyBox.init(this, "textures/starmap_g4k.jpg");
+		Tstars.init(this, "textures/2k_earth_clouds.jpg");
 		
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLScene, PScene, "modules/scene.json");
@@ -275,13 +312,18 @@ class MeshLoader : public BaseProject {
 		PBlinn.create();
 		PEmission.create();
 		PScene.create();
+		PskyBox.create();
 
 		// Here you define the data set
 		DSsun.init(this, &DSLEmission, { &Tsun });
+		DSsunPar.init(this, &DSLSunPar, {});
 		DSmoon.init(this, &DSLEmission, { &Tmoon });
+		DSmoonPar.init(this, &DSLSunPar, {});
 		DSGlobal.init(this, &DSLGlobal, {});
 		DSship.init(this, &DSLBlinn, {&Tship});
 		DSCar.init(this, &DSLBlinn, {&TCar});
+		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
+		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		
 		scene.pipelinesAndDescriptorSetsInit(DSLScene);
 		
@@ -292,12 +334,17 @@ class MeshLoader : public BaseProject {
 		PBlinn.cleanup();
 		PEmission.cleanup();
 		PScene.cleanup();
+		PskyBox.cleanup();
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
 		DSship.cleanup();
 		DSsun.cleanup();
+		DSsunPar.cleanup();
 		DSmoon.cleanup();
+		DSmoonPar.cleanup();
+		DSskyBox.cleanup();
+		DSskyBoxPar.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -315,13 +362,19 @@ class MeshLoader : public BaseProject {
 
 		Tmoon.cleanup();
 		Mmoon.cleanup();
+
+		TskyBox.cleanup();
+		Tstars.cleanup();
+		MskyBox.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
 		DSLBlinn.cleanup();
 		DSLEmission.cleanup();
+		DSLSunPar.cleanup();
 		DSLScene.cleanup();
-		//DSLSpot.cleanup();
+		DSLskyBox.cleanup();
+		DSLskyBoxPar.cleanup();
 
 		//SCENE CLEANUP
 		scene.localCleanup();
@@ -330,6 +383,7 @@ class MeshLoader : public BaseProject {
 		PBlinn.destroy();
 		PEmission.destroy();
 		PScene.destroy();
+		PskyBox.destroy();
 
 		
 	}
@@ -353,17 +407,26 @@ class MeshLoader : public BaseProject {
 		PEmission.bind(commandBuffer);
 		Msun.bind(commandBuffer);
 		DSsun.bind(commandBuffer, PEmission, 0, currentImage);
+		DSsunPar.bind(commandBuffer, PEmission, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
 			static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
+
+		Mmoon.bind(commandBuffer);
+		DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
+		DSmoonPar.bind(commandBuffer, PEmission, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
 
 		//POPULATE SCENE
 		PScene.bind(commandBuffer);
 		scene.populateCommandBuffer(commandBuffer, currentImage, PScene, DSGlobal);
 
-		Mmoon.bind(commandBuffer);
-		DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
+		PskyBox.bind(commandBuffer);
+		MskyBox.bind(commandBuffer);
+		DSskyBox.bind(commandBuffer, PskyBox, 0, currentImage);
+		DSskyBoxPar.bind(commandBuffer, PskyBox, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
+			static_cast<uint32_t>(MskyBox.indices.size()), 1, 0, 0, 0);
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -440,6 +503,21 @@ class MeshLoader : public BaseProject {
 			}
 		}
 
+		//TURNING OFF CLOUDS
+		if (glfwGetKey(window, GLFW_KEY_3)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_3;
+				showClouds = 1 - showClouds;
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_3) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
 		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f);
@@ -453,6 +531,11 @@ class MeshLoader : public BaseProject {
 		}else{
 			View = LookInDirection(Pos, r, deltaT);
 		}
+
+		glm::mat4 M = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 160.0f);
+		M[1][1] *= -1;
+
+		glm::mat4 Mv = View;
 		
 		
 
@@ -511,6 +594,7 @@ class MeshLoader : public BaseProject {
 		BlinnUniformBufferObject blinnUbo{};
 		BlinnMatParUniformBufferObject blinnMatParUbo{};
 
+
 		blinnUbo.mMat = glm::mat4(1);
 		blinnUbo.mvpMat = View;
 		blinnUbo.nMat = glm::mat4(1);
@@ -553,9 +637,9 @@ class MeshLoader : public BaseProject {
 			+ glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffsetHeadLight2;
 
 		//MOON
-		gubo.lightDir[3] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
+		gubo.lightDir[3] = glm::vec3(-cos(cTime * angTurnTimeFact), -sin(cTime * angTurnTimeFact), 0);
 		glm::vec4 moonColor;
-		moonColor = glm::vec4(0.5*(1 + sin(cTime * angTurnTimeFact)), 0.0, -sin(cTime * angTurnTimeFact), 1.0);
+		moonColor = glm::vec4(0.0, 0.0, -sin(cTime * angTurnTimeFact) * 0.8 , 1.0);
 		if (moonColor.z < 0) {
 			moonColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		}
@@ -571,12 +655,22 @@ class MeshLoader : public BaseProject {
 		//SUNPARAMETERS
 
 		EmissionUniformBufferObject emissionUbo{};
-		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 40.0f) * baseTr;
+		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 100.0f) * baseTr;
 		DSsun.map(currentImage, &emissionUbo, 0);
 
 		EmissionUniformBufferObject moonUbo{};
-		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * -40.0f) * baseTr;
+		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * 40.0f) * baseTr;
 		DSmoon.map(currentImage, &moonUbo, 0);
+
+		SunParUniformBufferObject sunParUbo{};
+		sunParUbo.sinSun = sin(cTime * angTurnTimeFact);
+		sunParUbo.isMoon = 1.0;
+		DSsunPar.map(currentImage, &sunParUbo, 0);
+
+		SunParUniformBufferObject moonParUbo{};
+		moonParUbo.sinSun = sin(cTime * angTurnTimeFact);
+		moonParUbo.isMoon = 0.0;
+		DSmoonPar.map(currentImage, &moonParUbo, 0);
 
 		/* SCENE POSITION ******************************************************************************************** */
         int i = 0;
@@ -595,26 +689,20 @@ class MeshLoader : public BaseProject {
 
 			i++;
         }
+
+		//SKYBOX
+
+		skyBoxUniformBufferObject sbubo{};
+		sbubo.mvpMat = M * glm::mat4(glm::mat3(Mv));
+		DSskyBox.map(currentImage, &sbubo, 0);
+
+		SkyMatParUniformBufferObject sbparubo{};
+		sbparubo.Ang = cTime * angTurnTimeFact/10;
+		sbparubo.ShowCloud = showClouds;
+		sbparubo.sinSun = sin(cTime * angTurnTimeFact);
+		DSskyBoxPar.map(currentImage, &sbparubo, 0);
     
 		
-/*
-		//SPOT PARAMETERS ********************************************************************************************
-
-		// updates global uniforms
-		SpotUniformBufferObject subo{};
-
-		//		gubo.lightDir = glm::vec3(cos(glm::radians(135.0f)), sin(glm::radians(135.0f)), 0.0f);
-		for (int i = 0; i < 2; i++) {
-			subo.lightColor = glm::vec4(1);
-			subo.lightDir = carDirection;
-			subo.lightPos[i] = glm::vec3(0, 1, 0);
-		}
-		subo.cosIn = 0.3;
-		subo.cosOut = 0.4;
-
-		subo.eyePos = CamPos;
-		subo.lightOn = 1;
-		*/
 	}	
 
 	//Move the car, todo: implement dynamic
