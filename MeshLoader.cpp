@@ -25,6 +25,7 @@ struct BlinnUniformBufferObject {
 
 struct BlinnMatParUniformBufferObject {
 	alignas(4)  float Power;
+	alignas(4)  float isCar;
 };
 
 //UNIFORM BUFFER - GLOBAL -
@@ -542,6 +543,7 @@ class MeshLoader : public BaseProject {
 		//CAR PARMAT ******************************************************************************************** */
 		BlinnMatParUniformBufferObject uboCarMatPar{};
 		uboCarMatPar.Power = 200.0;
+		uboCarMatPar.isCar = 1.0;
 		DSCar.map(currentImage, &uboCarMatPar, 2);
 		
 		BlinnUniformBufferObject uboCar{};
@@ -601,6 +603,7 @@ class MeshLoader : public BaseProject {
 		DSship.map(currentImage, &blinnUbo, 0);
 
 		blinnMatParUbo.Power = 200.0;
+		blinnMatParUbo.Power = 0.0;
 		DSship.map(currentImage, &blinnMatParUbo, 2);
 
 		//GLOBAL PARAMETERS ******************************************************************************************** */
@@ -655,11 +658,11 @@ class MeshLoader : public BaseProject {
 		//SUNPARAMETERS
 
 		EmissionUniformBufferObject emissionUbo{};
-		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 100.0f) * baseTr;
+		emissionUbo.mvpMat = View * translate(glm::mat4(1), gubo.lightDir[0] * 500.0f) * glm::scale(glm::mat4(1), glm::vec3(20, 20, 20)) * baseTr;
 		DSsun.map(currentImage, &emissionUbo, 0);
 
 		EmissionUniformBufferObject moonUbo{};
-		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * 40.0f) * baseTr;
+		moonUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[3] * 500.0f) * glm::scale(glm::mat4(1), glm::vec3(20, 20, 20)) * baseTr;
 		DSmoon.map(currentImage, &moonUbo, 0);
 
 		SunParUniformBufferObject sunParUbo{};
@@ -679,6 +682,7 @@ class MeshLoader : public BaseProject {
 			BlinnMatParUniformBufferObject uboSceneMatPar{};
 
 			uboSceneMatPar.Power = 200.0;
+			uboSceneMatPar.isCar = 0.0;
 
 			uboScene.mMat = instance.second.transform;
 			uboScene.mvpMat = View * uboScene.mMat;

@@ -28,6 +28,7 @@ layout(set = 0, binding = 0) uniform CarUniformBufferObject {
 
 layout(set = 1, binding = 2) uniform CarParUniformBufferObject {
 	float Pow;
+	float isCar;
 } mubo;
 
 layout(set = 1, binding = 1) uniform sampler2D tex;
@@ -126,6 +127,12 @@ void main() {
 	vec3 Norm = normalize(fragNorm);
 	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
 	vec3 Albedo = texture(tex, fragUV).rgb;
+	/*if(mubo.isCar == 1){
+	    if(Albedo.x >0.4){
+	        Albedo = vec3(0.0, 0.0, 0.0);
+	    }
+
+	}*/
 	vec3 RendEqSol = vec3(0);
 	vec3 lightDir;
     vec3 lightColor;
@@ -151,6 +158,16 @@ void main() {
     RendEqSol += BRDF(Albedo, Norm, EyeDir, -lightDir) * lightColor;
 
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
+	const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;
+    const vec3 cxn = vec3(0.1,0.0,0.0) * 0.025f;
+    const vec3 cyp = vec3(0.0,1.0,0.0) * 0.025f;
+    const vec3 cyn = vec3(0.0,0.1,0.0) * 0.025f;
+    const vec3 czp = vec3(0.0,0.0,0.1) * 0.025f;
+    const vec3 czn = vec3(0.0,0.0,0.1) * 0.025f;
+
+    Ambient =((Norm.x > 0 ? cxp : cxn) * (Norm.x * Norm.x) +
+              (Norm.y > 0 ? cyp : cyn) * (Norm.y * Norm.y) +
+              (Norm.z > 0 ? czp : czn) * (Norm.z * Norm.z)) * Albedo;
 
 	vec3 col = RendEqSol + Ambient;
 	
