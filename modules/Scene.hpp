@@ -7,16 +7,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 //define Structures
-typedef struct  {
-    std::string id;
-    std::string model;
-    std::string format;
-}ModelScene;
-
-typedef struct  {
-    std::string id;
-    std::string texture;
-}TextureScene;
 
 typedef struct  {
     std::string id;
@@ -28,19 +18,17 @@ typedef struct  {
 class SceneProject {
     public:
         //variable used to parse the json file
-        std::unordered_map<std::string, ModelScene> modelsParsed;
-        std::unordered_map<std::string, TextureScene> texturesParsed;
         std::unordered_map<std::string, InstanceScene> instancesParsed;
 
         std::unordered_map<std::string, Model> models;
         std::unordered_map<std::string, Texture> textures;
 
+
 	    BaseProject *BP;
-        std::vector <DescriptorSet> DSScene;
+        DescriptorSet **DSScene;
     
-    void init(BaseProject *_BP, VertexDescriptor *VD, DescriptorSetLayout &DSL, 
-			  Pipeline &P, std::string filePath) {
-    
+    void init(BaseProject *_BP, VertexDescriptor *VDBlinn, DescriptorSetLayout &DSLBlinn, 
+			  Pipeline &PBlinn, std::string filePath) {
         BP = _BP;
 
         //provo ad aprire il file
@@ -58,30 +46,21 @@ class SceneProject {
 
         // PARSING AND INITIALIZING MODELS
         for (const auto& modelData : js["models"]) {
-            ModelScene modelParsed;
-            modelParsed.id = modelData["id"];
-            modelParsed.model = modelData["model"];
-            modelParsed.format = modelData["format"];
-            modelsParsed[modelParsed.id] = modelParsed;
-
+			std::string format = modelData["format"];
             //INITIALIZATION OF MODELS
-            Model* model = new Model();
-            model->init(BP, VD, modelParsed.model, (modelParsed.format[0] == 'O') ? OBJ : ((modelParsed.format[0] == 'M') ? MGCG : GLTF));
-            models[modelParsed.id] = *model;
+            Model model;
+            model.init(BP, VDBlinn, modelData["model"], (format[0] == 'O') ? OBJ : ((format[0] == 'M') ? MGCG : GLTF));
+            models[modelData["id"]] = model;
         }
 
 
         // PARSING AND INITIALIZING TEXTURES
         for (const auto& textureData : js["textures"]) {
-            TextureScene textureParsed;
-            textureParsed.id = textureData["id"];
-            textureParsed.texture = textureData["texture"];
-            texturesParsed[textureParsed.id] = textureParsed;
 
             //INITIALIZATION OF TEXTURES
-            Texture* texture = new Texture();
-            texture->init(BP, textureParsed.texture);
-            textures[textureParsed.id] = *texture;
+            Texture texture;
+            texture.init(BP, textureData["texture"]);
+            textures[textureData["id"]] = texture;
         }
 
         //INITIALIZING INSTANCES
@@ -96,20 +75,26 @@ class SceneProject {
             }
 
             instancesParsed[instanceData["id"]] = instance;
+
+            DSScene = (DescriptorSet **)calloc(instancesParsed.size(), sizeof(DescriptorSet *));
         }
     }
+   
     
     void pipelinesAndDescriptorSetsInit(DescriptorSetLayout &DSL) {
-		for(auto& instance : instancesParsed) {
-            DescriptorSet DS;
-            DS.init(BP, &DSL, { &textures[instance.second.texture] });
-            DSScene.push_back(DS);
+		int i = 0;
+        for(auto& instance : instancesParsed) {
+            
+            DSScene[i] = new DescriptorSet();
+            DSScene[i]->init(BP, &DSL, { &textures[instance.second.texture] });
+            i++;
 		}
 	}
 
     void pipelinesAndDescriptorSetsCleanup(){
         for(int i = 0; i < instancesParsed.size(); i++) {
-            DSScene[i].cleanup();
+            DSScene[i]->cleanup();
+            delete DSScene[i];
         }
     }
 
@@ -122,20 +107,20 @@ class SceneProject {
         }
     }
 
-    void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage, Pipeline &P, DescriptorSet &DSGlobal) {
+    void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage, Pipeline PBlinn, DescriptorSet &DSGlobal) {
         int i = 0;
+       
         for(auto& instance : instancesParsed) {
             models[instance.second.model].bind(commandBuffer);
 
-            DSGlobal.bind(commandBuffer, P, 0, currentImage);
-            DSScene[i].bind(commandBuffer, P, 1, currentImage);
-
-            i++;
+            DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
+			DSScene[i]->bind(commandBuffer, PBlinn, 1, currentImage);
 
             vkCmdDrawIndexed(commandBuffer,
 						static_cast<uint32_t>(models[instance.second.model].indices.size()), 1, 0, 0, 0);	
+			i++;	
         }
     }
-
+    
 
 };

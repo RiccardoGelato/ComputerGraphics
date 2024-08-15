@@ -15,9 +15,9 @@
                     },
         {"id": "str2",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
         "transform": [ 1, 0, 0, 0,
-                        0, 1, 0, 0,
-                        0, 0, 1, 0,
-                        0, 0, 20, 1]
-                        }
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       0, 0, 20, 1]
+                    }
     ]
 }

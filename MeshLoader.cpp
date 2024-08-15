@@ -5,6 +5,16 @@
 #include "modules/Scene.hpp"
 
 
+//STRUTTURE DI SCENE
+//define Structures
+/*
+typedef struct  {
+    std::string id;
+    std::string model;
+    std::string texture;
+    glm::mat4 transform;
+}InstanceScene;
+*/
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
 //        float : alignas(4)
@@ -41,7 +51,6 @@ struct GlobalUniformBufferObject {
 };
 
 //SUN
-
 struct EmissionUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
@@ -84,6 +93,7 @@ struct EmissionVertex {
 // MAIN ! 
 class MeshLoader : public BaseProject {
 	protected:
+
 	//SYSTEM PARAMETERS
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
@@ -100,7 +110,7 @@ class MeshLoader : public BaseProject {
 		
 		const float ROT_SPEED_CAMERA = glm::radians(120.0f);
 		const float fixedCamDist = 10.0f;	//distanza fissa del target
-		const float PilotDist = 0.0f;	//distanza del pilota dal target
+		const float PilotDist = 0.0f;		//distanza del pilota dal target
 		const float lambdaCam = 10.0f;		//costante per l'esponenziale della camera
 
 	//CAR PARAMETERS
@@ -194,7 +204,7 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool =13;//aumento di 2
+		DPSZs.uniformBlocksInPool = 15;//aumento di 2
 		DPSZs.texturesInPool = 10;//aumentato di 1
 		DPSZs.setsInPool = 12;//aumento di 1
 		
@@ -211,24 +221,27 @@ class MeshLoader : public BaseProject {
 		lightOn = 1.0;
 		BDRFState = 1.0;
 		showClouds = 1.0;
+
 		// Descriptor Layouts INITIALIZATION [what will be passed to the shaders]
 		DSLGlobal.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_ALL_GRAPHICS, sizeof(GlobalUniformBufferObject), 1}
 		});
+
 		DSLEmission.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
-					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
-			});
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(EmissionUniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1}
+		});
+
 		DSLSunPar.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SunParUniformBufferObject), 1},
-			});
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SunParUniformBufferObject), 1},
+		});
 
 		DSLBlinn.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
 		});
-
+		
 		DSLScene.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
@@ -236,51 +249,45 @@ class MeshLoader : public BaseProject {
 		});
 
 		DSLskyBox.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
-					{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
-					{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(skyBoxUniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1}
 		});
 
 		DSLskyBoxPar.init(this, {
-					{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyMatParUniformBufferObject), 1},
-			});
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyMatParUniformBufferObject), 1},
+		});
 
 
 		// Vertex descriptors INITIALIZATION
-		
 		VDBlinn.init(this, {
-				  {0, sizeof(BlinnVertex), VK_VERTEX_INPUT_RATE_VERTEX}
-				}, {
-				  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, pos),
-				         sizeof(glm::vec3), POSITION},
-				  {0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, norm),
-				         sizeof(glm::vec3), NORMAL},
-				  {0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(BlinnVertex, UV),
-				         sizeof(glm::vec2), UV}
-				});
+			{0, sizeof(BlinnVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, pos),
+					sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(BlinnVertex, norm),
+					sizeof(glm::vec3), NORMAL},
+			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(BlinnVertex, UV),
+					sizeof(glm::vec2), UV}
+		});
 		
 
 		VDEmission.init(this, {
-				  {0, sizeof(EmissionVertex), VK_VERTEX_INPUT_RATE_VERTEX}
-			}, {
-			  {0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(EmissionVertex, pos),
-					 sizeof(glm::vec3), POSITION},
-			  {0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(EmissionVertex, UV),
-					 sizeof(glm::vec2), UV}
-			});
+			{0, sizeof(EmissionVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(EmissionVertex, pos),
+					sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(EmissionVertex, UV),
+					sizeof(glm::vec2), UV}
+		});
 
 
 		// Pipelines INITIALIZATION [Shader couples]
-		// The second parameter is the pointer to the vertex definition
-		// Third and fourth parameters are respectively the vertex and fragment shaders
-		// The last array, is a vector of pointer to the layouts of the sets that will
-		// be used in this pipeline. The first element will be set 0, and so on..
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission, &DSLSunPar});
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
 		PScene.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
 		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
-		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL,
-			VK_CULL_MODE_BACK_BIT, false);
+		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
@@ -304,7 +311,8 @@ class MeshLoader : public BaseProject {
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
 		
 		//INITIALIZE THE SCENE
-		scene.init(this, &VDBlinn, DSLScene, PScene, "modules/scene.json");
+		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
+
 
 	}
 	
@@ -326,7 +334,7 @@ class MeshLoader : public BaseProject {
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		
-		scene.pipelinesAndDescriptorSetsInit(DSLScene);
+		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
 		
 	}
 
@@ -396,10 +404,10 @@ class MeshLoader : public BaseProject {
 		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
 		DSship.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
-						static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);	
+						static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
+
+		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 		
-
-
 		MCar.bind(commandBuffer);
 		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
@@ -420,7 +428,7 @@ class MeshLoader : public BaseProject {
 
 		//POPULATE SCENE
 		PScene.bind(commandBuffer);
-		scene.populateCommandBuffer(commandBuffer, currentImage, PScene, DSGlobal);
+		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 
 		PskyBox.bind(commandBuffer);
 		MskyBox.bind(commandBuffer);
@@ -676,7 +684,7 @@ class MeshLoader : public BaseProject {
 		DSmoonPar.map(currentImage, &moonParUbo, 0);
 
 		/* SCENE POSITION ******************************************************************************************** */
-        int i = 0;
+		int i = 0;
 		for(const auto& instance : scene.instancesParsed) {
             BlinnUniformBufferObject uboScene{};
 			BlinnMatParUniformBufferObject uboSceneMatPar{};
@@ -686,10 +694,10 @@ class MeshLoader : public BaseProject {
 
 			uboScene.mMat = instance.second.transform;
 			uboScene.mvpMat = View * uboScene.mMat;
-			uboScene.nMat = glm::transpose(glm::inverse(uboCar.mMat));
+			uboScene.nMat = glm::transpose(glm::inverse(uboScene.mMat));
 
-			scene.DSScene[i].map(currentImage, &uboScene, 0);
-			scene.DSScene[i].map(currentImage, &uboSceneMatPar, 2);
+			scene.DSScene[i]->map(currentImage, &uboScene, 0);
+			scene.DSScene[i]->map(currentImage, &uboSceneMatPar, 2);
 
 			i++;
         }
@@ -808,6 +816,7 @@ class MeshLoader : public BaseProject {
 		//Creo la matrice di view e projection
 		return MakeViewProjectionLookInDirection(CamPos, camYaw - carYaw, camPitch, 0.0f, FOVy, Ar, nearPlane, farPlane); //using carYaw with camYaw to maintain the relative angle of the camera
 	}
+
 };
 
 
