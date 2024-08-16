@@ -4,14 +4,10 @@
         {"id": "M_appartamento", "model": "models/APARTMENT.mgcg", "format":"MGCG"},
         {"id": "M_strada_curva", "model": "models/ROAD_CURVA.mgcg", "format":"MGCG"},
         {"id": "M_strada_incrocio_3", "model": "models/ROAD_INCROCIO_A_TRE.mgcg", "format":"MGCG"},
-        {"id": "M_park1", "model": "models/PARK.mgcg", "format":"MGCG"},
-        {"id": "M_cube", "model": "models/Cube.obj", "format":"OBJ"},
         {"id": "M_strada_incrocio_4", "model": "models/ROAD_INCROCIO_A_QUATTRO.mgcg", "format":"MGCG"}
     ],
     "textures": [
-		    {"id": "T_strada_dritta", "texture": "textures/CityTexture.png"},
-          {"id": "T_strada", "texture": "textures/ASFALTO.png"},
-          {"id": "T_prato", "texture": "textures/PRATO.png"}
+		    {"id": "T_strada_dritta", "texture": "textures/CityTexture.png"}
     ],
     "instances": [
         {"id": "str1",   "model": "M_strada_dritta",   "texture": "T_strada_dritta",
@@ -235,42 +231,6 @@
                        0, 1, 0, 0,
                        0, 0, 1, 0,
                        -45, 0, 60, 1]
-                    },
-         {"id": "park1",   "model": "M_park1",   "texture": "T_strada_dritta",
-        "transform": [ 1, 0, 0, 0,
-                       0, 1, 0, 0,
-                       0, 0, 1, 0,
-                       -30, 0, 60, 1]
-                    },
-         {"id": "floor1",   "model": "M_cube",   "texture": "T_strada",
-        "transform": [ 54, 0, 0, 0,
-                       0, 54, 0, 0,
-                       0, 0, 54, 0,
-                       -15, -53.99, 30, 1]
-                    },
-         {"id": "floor2",   "model": "M_cube",   "texture": "T_prato",
-        "transform": [ 16, 0, 0, 0,
-                       0, 16, 0, 0,
-                       0, 0, 16, 0,
-                       7.5, -15.98, 7.5, 1]
-                    },
-         {"id": "floor3",   "model": "M_cube",   "texture": "T_prato",
-        "transform": [ 16, 0, 0, 0,
-                       0, 16, 0, 0,
-                       0, 0, 16, 0,
-                       -37.5, -15.98, 7.5, 1]
-                    },
-         {"id": "floor4",   "model": "M_cube",   "texture": "T_prato",
-        "transform": [ 16, 0, 0, 0,
-                       0, 16, 0, 0,
-                       0, 0, 16, 0,
-                       -37.5, -15.98, 52.5, 1]
-                    },
-         {"id": "floor5",   "model": "M_cube",   "texture": "T_prato",
-        "transform": [ 16, 0, 0, 0,
-                       0, 16, 0, 0,
-                       0, 0, 16, 0,
-                       7.5, -15.98, 52.5, 1]
                     }
 
     ]
