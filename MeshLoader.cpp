@@ -4,17 +4,6 @@
 #include "Starter.hpp"
 #include "modules/Scene.hpp"
 
-
-//STRUTTURE DI SCENE
-//define Structures
-/*
-typedef struct  {
-    std::string id;
-    std::string model;
-    std::string texture;
-    glm::mat4 transform;
-}InstanceScene;
-*/
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
 //        float : alignas(4)
@@ -23,6 +12,21 @@ typedef struct  {
 //        vec4  : alignas(16)
 //        mat3  : alignas(16)
 //        mat4  : alignas(16)
+
+//COLLIDER
+struct ColliderQuad{
+	glm::vec3 vertice1;
+	glm::vec3 vertice2;
+	glm::vec3 vertice3;
+	glm::vec3 vertice4;
+/*
+*	ver1----ver2
+* 	 |		 |
+*	 |		 |
+*	ver4----ver3
+*/
+};
+
 
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
@@ -98,6 +102,7 @@ class MeshLoader : public BaseProject {
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
 		SceneProject scene;
+		ColliderQuad colObstacle[4];
 
 	//CAMERA PARAMETERS
 		float Ar;	// Current aspect ratio
@@ -120,7 +125,7 @@ class MeshLoader : public BaseProject {
 		float steeringAngle = 0.0f;
 
 		glm::vec3 carDirection;
-		glm::vec3 Pos = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
 		glm::vec3 Vel = glm::vec3(0.0f, 0.0f, 0.0f);
 
 		//MATRICES FOR THE MODEL
@@ -313,8 +318,12 @@ class MeshLoader : public BaseProject {
 		Tmoon.init(this, "textures/moon.jfif");
 		TskyBox.init(this, "textures/starmap_g4k.jpg");
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
+
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
+
+		//INITIALIZE THE COLLIDERS
+		InitializeColliders();
 
 		//CREATE THE MODEL FOR THE FLOOR
 		/*
@@ -614,8 +623,21 @@ class MeshLoader : public BaseProject {
 			Vel = glm::normalize(Vel) * MAX_SPEED;
 		}
 
-		//aggiorno la posizione
 		Pos += Vel * deltaT;
+
+		//aggiorno la posizione se non collide con questo collider
+		ColliderQuad col;
+		col = updateCollider();
+
+		//VERIFICO COLLISIONE
+		if(CollisionQuad(col, colObstacle[0]) || 
+		   CollisionQuad(col, colObstacle[1]) || 
+		   CollisionQuad(col, colObstacle[2]) || 
+		   CollisionQuad(col, colObstacle[3])) 
+		{
+			Pos -= Vel * deltaT;
+			Vel = glm::vec3(0.0f);
+		}
 
 		//aggiorno la velocità con l'attrito
 		decayFactor = FRICTION * deltaT;
@@ -924,6 +946,98 @@ class MeshLoader : public BaseProject {
 					5, 6, 7, 4, 6, 5 
 		};
 	}
+
+	//COLLISION DETECTION
+	bool CollisionQuad(ColliderQuad obj1, ColliderQuad obj2){
+		
+		if(CollisionQuadPoint(obj1.vertice1, obj2) || CollisionQuadPoint(obj1.vertice2, obj2) || CollisionQuadPoint(obj1.vertice3, obj2) || CollisionQuadPoint(obj1.vertice4, obj2)){
+			return true;
+		if(CollisionQuadPoint(obj2.vertice1, obj1) || CollisionQuadPoint(obj2.vertice2, obj1) || CollisionQuadPoint(obj2.vertice3, obj1) || CollisionQuadPoint(obj2.vertice4, obj1)){
+			return true;
+		}
+		}else{
+			return false;
+		}
+	}
+	bool CollisionQuadPoint(glm::vec3 point, ColliderQuad obj){
+		//determining which point has the highest x and z coordinates
+		float maxX = obj.vertice1.x;
+		float minX = obj.vertice1.x;
+
+		float maxZ = obj.vertice1.z;
+		float minZ = obj.vertice1.z;
+
+		if(obj.vertice2.x > maxX){
+			maxX = obj.vertice2.x;
+		}else {
+			minX = obj.vertice2.x;
+
+			if(obj.vertice3.x >= maxX){
+				maxX = obj.vertice3.x;
+			} else{
+				minX = obj.vertice3.x;
+			}
+		}
+
+		if(obj.vertice2.z > maxZ){
+			maxZ = obj.vertice2.z;
+		}else {
+			minZ = obj.vertice2.z;
+
+			if(obj.vertice3.z >= maxZ){
+				maxZ = obj.vertice3.z;
+			} else{
+				minZ = obj.vertice3.z;
+			}
+		}
+
+		//checking if the point is inside the quad
+		if(point.x >= minX && point.x <= maxX && point.z >= minZ && point.z <= maxZ){
+			return true;
+		}else{
+			return false;
+		}
+	}
+	void InitializeColliders(){
+		
+		colObstacle[0].vertice1 = glm::vec3(-5, 0, 7);
+		colObstacle[0].vertice2 = glm::vec3(-5, 0, -7);
+		colObstacle[0].vertice3 = glm::vec3(5, 0, 7);
+		colObstacle[0].vertice4 = glm::vec3(5, 0, -7);
+
+		colObstacle[1].vertice1 = glm::vec3(22, 0, 10);
+		colObstacle[1].vertice2 = glm::vec3(22, 0, 20);
+		colObstacle[1].vertice3 = glm::vec3(8, 0, 10);
+		colObstacle[1].vertice4 = glm::vec3(8, 0, 20);
+
+		colObstacle[2].vertice1 = glm::vec3(-25, 0, 38);
+		colObstacle[2].vertice2 = glm::vec3(-25, 0, 52);
+		colObstacle[2].vertice3 = glm::vec3(-35, 0, 38);
+		colObstacle[2].vertice4 = glm::vec3(-35, 0, 52);
+
+		colObstacle[3].vertice1 = glm::vec3(-38, 0, 55);
+		colObstacle[3].vertice2 = glm::vec3(-38, 0, 65);
+		colObstacle[3].vertice3 = glm::vec3(-52, 0, 55);
+		colObstacle[3].vertice4 = glm::vec3(-52, 0, 65);
+
+
+	}
+	ColliderQuad updateCollider(){
+		ColliderQuad col;
+
+		glm::vec3 halfExtents = glm::vec3(R / 2, 0, W / 2);
+		glm::vec3 localVertice1 = glm::vec3(-halfExtents.x, 0, -halfExtents.z);
+		glm::vec3 localVertice2 = glm::vec3(halfExtents.x, 0, -halfExtents.z);
+		glm::vec3 localVertice3 = glm::vec3(halfExtents.x, 0, halfExtents.z);
+		glm::vec3 localVertice4 = glm::vec3(-halfExtents.x, 0, halfExtents.z);
+		
+		col.vertice1 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice1, 1.0));
+		col.vertice2 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice2, 1.0));
+		col.vertice3 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice3, 1.0));
+		col.vertice4 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice4, 1.0));
+		return col;
+	}
+
 };
 
 
