@@ -584,7 +584,8 @@ class MeshLoader : public BaseProject {
 		glm::vec3 r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
-		
+
+		deltaT = 0.02f;		//fisso deltaT per evitare cambi di prestazione su diversi computer/grandezze dis schermi
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){
 			View = LookAt(Pos, r, deltaT);
