@@ -4,6 +4,7 @@
         {"id": "M_appartamento", "model": "models/APARTMENT.mgcg", "format":"MGCG"},
         {"id": "M_strada_curva", "model": "models/ROAD_CURVA.mgcg", "format":"MGCG"},
         {"id": "M_strada_incrocio_3", "model": "models/ROAD_INCROCIO_A_TRE.mgcg", "format":"MGCG"},
+        {"id": "M_park1", "model": "models/PARK.mgcg", "format":"MGCG"},
         {"id": "M_strada_incrocio_4", "model": "models/ROAD_INCROCIO_A_QUATTRO.mgcg", "format":"MGCG"}
     ],
     "textures": [
@@ -231,6 +232,12 @@
                        0, 1, 0, 0,
                        0, 0, 1, 0,
                        -45, 0, 60, 1]
+                    },
+         {"id": "park1",   "model": "M_park1",   "texture": "T_strada_dritta",
+        "transform": [ 1, 0, 0, 0,
+                       0, 1, 0, 0,
+                       0, 0, 1, 0,
+                       -30, 0, 60, 1]
                     }
 
     ]

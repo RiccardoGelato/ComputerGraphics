@@ -145,7 +145,7 @@ class MeshLoader : public BaseProject {
 			
 	//MATRICES
 		glm::mat4 View;
-		glm::mat4 baseTr = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		glm::mat4 baseTr = glm::mat4(1);
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSLGlobal;
@@ -185,6 +185,11 @@ class MeshLoader : public BaseProject {
 	Texture TskyBox, Tstars;
 	DescriptorSet DSskyBox, DSskyBoxPar;
 
+	//Model MFloor[1];
+	Model MFloor;
+	std::vector<std::array<float,6>> vertices_pos_floor[1];
+	DescriptorSet DSFloor;
+	Texture TFloor;
 
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
@@ -204,9 +209,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 85;//aumento di 2
-		DPSZs.texturesInPool = 44;//aumentato di 1
-		DPSZs.setsInPool = 47;//aumento di 1
+		DPSZs.uniformBlocksInPool = 89;//aumento di 2
+		DPSZs.texturesInPool = 46;//aumentato di 1
+		DPSZs.setsInPool = 49;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -309,11 +314,33 @@ class MeshLoader : public BaseProject {
 		Tmoon.init(this, "textures/moon.jfif");
 		TskyBox.init(this, "textures/starmap_g4k.jpg");
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
-		
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
 
+		//CREATE THE MODEL FOR THE FLOOR
+		TFloor.init(this, "textures/Textures_Food.png");
+		MFloor.init(this, &VDBlinn, "models/Cube.obj", OBJ);
+		/*
+		MakeFloor(2.0, vertices_pos_floor[0], MFloor[0].indices);
 
+		MFloor[0].vertices = std::vector<unsigned char>(vertices_pos_floor[0].size()*sizeof(BlinnVertex), 0);
+
+		for(int i = 0; i < vertices_pos_floor[0].size(); i++) {
+			BlinnVertex *V_vertex = (BlinnVertex *)(&(MFloor[0].vertices[i]));
+
+			V_vertex->pos.x = vertices_pos_floor[0][i][0];
+			V_vertex->pos.y = vertices_pos_floor[0][i][1];
+			V_vertex->pos.z = vertices_pos_floor[0][i][2];
+			V_vertex->UV.x = vertices_pos_floor[0][i][0];
+			V_vertex->UV.y = vertices_pos_floor[0][i][2];
+			V_vertex->norm.x = vertices_pos_floor[0][i][3];
+			V_vertex->norm.y = vertices_pos_floor[0][i][4];
+			V_vertex->norm.z = vertices_pos_floor[0][i][5];
+		}
+
+		MFloor[0].initMesh(this, &VDBlinn);
+		*/
+		
 	}
 	
 	void pipelinesAndDescriptorSetsInit() {
@@ -333,8 +360,14 @@ class MeshLoader : public BaseProject {
 		DSCar.init(this, &DSLBlinn, {&TCar});
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
+
+		//floor
+		DSFloor.init(this, &DSLBlinn, {&TFloor});
 		
+		//scene pipelines and descriptor sets
 		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
+
+		
 		
 	}
 
@@ -354,6 +387,7 @@ class MeshLoader : public BaseProject {
 		DSmoonPar.cleanup();
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
+		DSFloor.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -387,14 +421,17 @@ class MeshLoader : public BaseProject {
 
 		//SCENE CLEANUP
 		scene.localCleanup();
+
+		//FLOOR
+		TFloor.cleanup();
+		MFloor.cleanup();
+		//MFloor[0].cleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
 		PEmission.destroy();
 		PScene.destroy();
 		PskyBox.destroy();
-
-		
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
@@ -406,12 +443,23 @@ class MeshLoader : public BaseProject {
 		vkCmdDrawIndexed(commandBuffer,
 						static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
 
+		//POPULATE SCENE
 		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+		//FLOOR
+		//MFloor[0].bind(commandBuffer);
+		MFloor.bind(commandBuffer);
+		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
+		DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+		//vkCmdDrawIndexed(commandBuffer,
+		//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
+
 		
 		MCar.bind(commandBuffer);
 		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
 		vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
+			static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
 
 		PEmission.bind(commandBuffer);
 		Msun.bind(commandBuffer);
@@ -702,6 +750,22 @@ class MeshLoader : public BaseProject {
 			i++;
         }
 
+		/* FLOOR POSITION ******************************************************************************************** */
+		BlinnUniformBufferObject uboFloor{};
+		BlinnMatParUniformBufferObject uboFloorMatPar{};
+
+		uboFloor.mMat = glm::mat4( 54, 0, 0, 0,
+								   0, 54, 0, 0,
+								   0, 0, 54, 0,
+								   -15, -53.99, 30, 1);
+		uboFloor.mvpMat = View * uboFloor.mMat;
+		uboFloor.nMat = glm::transpose(glm::inverse(uboFloor.mMat));
+
+		uboFloorMatPar.Power = 200.0;
+
+		DSFloor.map(currentImage, &uboFloor, 0);
+		DSFloor.map(currentImage, &uboFloorMatPar, 2);
+
 		//SKYBOX
 
 		skyBoxUniformBufferObject sbubo{};
@@ -717,7 +781,7 @@ class MeshLoader : public BaseProject {
 		
 	}	
 
-	//Move the car, todo: implement dynamic
+	//MOVE THE CAR
 	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {
 		glm::mat4 M = glm::mat4(1.0f);
 
@@ -816,7 +880,55 @@ class MeshLoader : public BaseProject {
 		//Creo la matrice di view e projection
 		return MakeViewProjectionLookInDirection(CamPos, camYaw - carYaw, camPitch, 0.0f, FOVy, Ar, nearPlane, farPlane); //using carYaw with camYaw to maintain the relative angle of the camera
 	}
+	
+	//CREATE THE FLOOR
+	void MakeFloor(float size, std::vector<std::array<float,6>> &vertices, std::vector<uint32_t> &indices) {
 
+		vertices = {
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
+					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
+
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
+
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{-size / 2.0f, size / 2.0f, size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
+		};
+
+		indices = {
+					0, 1, 2, 1, 3, 2,
+					22, 12, 14, 22, 20, 12,
+					17, 13, 21, 9, 13, 17,
+					18, 8, 16, 10, 8, 18,
+					11, 19, 15, 15, 19, 23,
+					5, 6, 7, 4, 6, 5 
+		};
+	}
 };
 
 
