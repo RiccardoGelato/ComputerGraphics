@@ -3,6 +3,7 @@
 #define NSHIP 16
 #include "Starter.hpp"
 #include "modules/Scene.hpp"
+#include "modules/TextMaker.hpp"
 
 
 //STRUTTURE DI SCENE
@@ -27,6 +28,38 @@ typedef struct  {
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
 #define NLIGHTS 4
+
+//TextAlignment alignment = Menu;
+
+const char* cloudState[2] = { "ON", "OFF" };
+const char* headlightState[2] = { "ON", "OFF" };
+const char* bdrfState[2] = { "Blinn", "Toon" };
+const char* bdrf = bdrfState[0];
+
+std::vector<SingleText> outText = {
+	{2, {"Menu", "Press 4 To Start", "", ""}, 0, 0, 0},
+	{1, {"Press 4 To See Commands","","", ""}, 0, 0, 0},
+	{4, {"HeadLights: 1","BDRF: 2","Clouds: 3", "Press 4 To Restart"}, 0, 0, 0},
+};
+
+std::vector<SingleText> outText2 = {
+	{1, {"","","", ""}, 0, 0, 0},
+	{1, {"HeadLights(1): ON", "", ""}, 0, 0, 0},
+	{1, {"HeadLights(1): OFF","","", ""}, 0, 0, 0},
+};
+
+std::vector<SingleText> outText3 = {
+	{1, {"BDRF(2): Blinn", "", ""}, 0, 0, 1},
+	{1, {"BDRF(2): Toon","","", ""}, 0, 0, 1},
+};
+
+std::vector<SingleText> outText4 = {
+	{1, {"Clouds(3): ON", "", ""}, 0, 0, 2},
+	{1, {"Clouds(3): OFF","","", ""}, 0, 0, 2},
+};
+
+
+
 struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 	alignas(16) glm::mat4 mMat;
@@ -84,15 +117,15 @@ struct EmissionVertex {
 	glm::vec2 UV;
 };
 
-/*struct skyBoxVertex {
-	glm::vec3 pos;
-};*/
 
 
 
 // MAIN ! 
 class MeshLoader : public BaseProject {
 	protected:
+
+	//SCENE
+		int currScene = 0;
 
 	//SYSTEM PARAMETERS
 		bool debounce = false;	//avoid multiple key press
@@ -142,6 +175,8 @@ class MeshLoader : public BaseProject {
 		float BDRFState;
 	//Clouds
 		float showClouds;
+	//GamePause
+		float gamePaused = 0;
 			
 	//MATRICES
 		glm::mat4 View;
@@ -194,6 +229,9 @@ class MeshLoader : public BaseProject {
 	//********************TEXTURES
 	Texture TCar;
 	Texture Tship;
+
+	TextMaker txt;
+	//TextMaker txt2;
 
 	void setWindowParameters() {
 		// window size, titile and initial background
@@ -313,6 +351,10 @@ class MeshLoader : public BaseProject {
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
 
+		// updates the text
+		txt.init(this, &outText);
+		//txt2.init(this, &outText2);
+
 
 	}
 	
@@ -335,6 +377,8 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		
 		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
+		txt.pipelinesAndDescriptorSetsInit();
+		//txt2.pipelinesAndDescriptorSetsInit();
 		
 	}
 
@@ -357,6 +401,8 @@ class MeshLoader : public BaseProject {
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
+		txt.pipelinesAndDescriptorSetsCleanup();
+		//txt2.pipelinesAndDescriptorSetsCleanup();
 	}
 
 	void localCleanup() {
@@ -387,6 +433,8 @@ class MeshLoader : public BaseProject {
 
 		//SCENE CLEANUP
 		scene.localCleanup();
+		txt.localCleanup();
+		//txt2.localCleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
@@ -398,44 +446,48 @@ class MeshLoader : public BaseProject {
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		
-		PBlinn.bind(commandBuffer);
-		Mship.bind(commandBuffer);
-		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
-		DSship.bind(commandBuffer, PBlinn, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-						static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
+		if (currScene != 0) {
+			PBlinn.bind(commandBuffer);
+			Mship.bind(commandBuffer);
+			DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
+			DSship.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
 
-		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
-		
-		MCar.bind(commandBuffer);
-		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
+			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+
+			MCar.bind(commandBuffer);
+			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
 
-		PEmission.bind(commandBuffer);
-		Msun.bind(commandBuffer);
-		DSsun.bind(commandBuffer, PEmission, 0, currentImage);
-		DSsunPar.bind(commandBuffer, PEmission, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
+			PEmission.bind(commandBuffer);
+			Msun.bind(commandBuffer);
+			DSsun.bind(commandBuffer, PEmission, 0, currentImage);
+			DSsunPar.bind(commandBuffer, PEmission, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
 
-		Mmoon.bind(commandBuffer);
-		DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
-		DSmoonPar.bind(commandBuffer, PEmission, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
+			Mmoon.bind(commandBuffer);
+			DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
+			DSmoonPar.bind(commandBuffer, PEmission, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
 
-		//POPULATE SCENE
-		PScene.bind(commandBuffer);
-		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+			//POPULATE SCENE
+			PScene.bind(commandBuffer);
+			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 
-		PskyBox.bind(commandBuffer);
-		MskyBox.bind(commandBuffer);
-		DSskyBox.bind(commandBuffer, PskyBox, 0, currentImage);
-		DSskyBoxPar.bind(commandBuffer, PskyBox, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(MskyBox.indices.size()), 1, 0, 0, 0);
+			PskyBox.bind(commandBuffer);
+			MskyBox.bind(commandBuffer);
+			DSskyBox.bind(commandBuffer, PskyBox, 0, currentImage);
+			DSskyBoxPar.bind(commandBuffer, PskyBox, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MskyBox.indices.size()), 1, 0, 0, 0);
+		}
+
+		txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
+		//txt2.populateCommandBuffer(commandBuffer, currentImage, currScene + 1-lightOn);
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -467,7 +519,7 @@ class MeshLoader : public BaseProject {
 		if(glfwGetKey(window, GLFW_KEY_P)) {
 			if(!debounce) {
 				debounce = true;
-				curDebounce = GLFW_KEY_SPACE;
+				curDebounce = GLFW_KEY_P;
 				
 				if(cameraType == 0){
 					cameraType = 1;
@@ -477,7 +529,7 @@ class MeshLoader : public BaseProject {
 				}
 			}
 		} else {
-			if((curDebounce == GLFW_KEY_SPACE) && debounce) {
+			if((curDebounce == GLFW_KEY_P) && debounce) {
 				debounce = false;
 				curDebounce = 0;
 			}
@@ -527,12 +579,35 @@ class MeshLoader : public BaseProject {
 			}
 		}
 
+		//CHANGING SCENE
+		if (glfwGetKey(window, GLFW_KEY_4)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_4;
+				currScene = (currScene + 1) % 3;
+				if (currScene == 0) {
+					currScene = 1;
+				}
+				RebuildPipeline();
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_4) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
 		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f);
 		glm::vec3 r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
+		if (currScene == 2) {
+			deltaT = 0;
+		}
+		
 		
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){

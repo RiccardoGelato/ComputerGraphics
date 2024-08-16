@@ -749,6 +749,12 @@
     <ClInclude Include="headers\tiny_obj_loader.h">
       <Filter>File di risorse</Filter>
     </ClInclude>
+    <ClInclude Include="modules\Scene.hpp">
+      <Filter>File di risorse</Filter>
+    </ClInclude>
+    <ClInclude Include="modules\TextMaker.hpp">
+      <Filter>File di risorse</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="headers\glm\detail\func_common.inl">

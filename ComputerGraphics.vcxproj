@@ -400,6 +400,8 @@
     <ClInclude Include="headers\stb_image_write.h" />
     <ClInclude Include="headers\tiny_gltf.h" />
     <ClInclude Include="headers\tiny_obj_loader.h" />
+    <ClInclude Include="modules\Scene.hpp" />
+    <ClInclude Include="modules\TextMaker.hpp" />
     <ClInclude Include="Starter.hpp" />
   </ItemGroup>
   <ItemGroup>
