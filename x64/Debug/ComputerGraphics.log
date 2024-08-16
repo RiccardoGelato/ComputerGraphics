@@ -80,8 +80,8 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(123,1): w
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(124,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(130,1): warning C4305: '=': troncamento da 'double' a 'float'
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(132,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(496,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(734,1): warning C4305: '=': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(735,1): warning C4305: '=': troncamento da 'double' a 'float'
-LINK : warning LNK4098: la libreria predefinita 'MSVCRT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(551,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(733,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(805,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(806,1): warning C4305: '=': troncamento da 'double' a 'float'
   ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe

@@ -5,17 +5,6 @@
 #include "modules/Scene.hpp"
 #include "modules/TextMaker.hpp"
 
-
-//STRUTTURE DI SCENE
-//define Structures
-/*
-typedef struct  {
-    std::string id;
-    std::string model;
-    std::string texture;
-    glm::mat4 transform;
-}InstanceScene;
-*/
 // The uniform buffer objects data structures
 // Remember to use the correct alignas(...) value
 //        float : alignas(4)
@@ -24,6 +13,21 @@ typedef struct  {
 //        vec4  : alignas(16)
 //        mat3  : alignas(16)
 //        mat4  : alignas(16)
+
+//COLLIDER
+struct ColliderQuad{
+	glm::vec3 vertice1;
+	glm::vec3 vertice2;
+	glm::vec3 vertice3;
+	glm::vec3 vertice4;
+/*
+*	ver1----ver2
+* 	 |		 |
+*	 |		 |
+*	ver4----ver3
+*/
+};
+
 
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
@@ -131,6 +135,7 @@ class MeshLoader : public BaseProject {
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
 		SceneProject scene;
+		ColliderQuad colObstacle[4];
 
 	//CAMERA PARAMETERS
 		float Ar;	// Current aspect ratio
@@ -153,7 +158,7 @@ class MeshLoader : public BaseProject {
 		float steeringAngle = 0.0f;
 
 		glm::vec3 carDirection;
-		glm::vec3 Pos = glm::vec3(0.0f, 0.0f, 0.0f);
+		glm::vec3 Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
 		glm::vec3 Vel = glm::vec3(0.0f, 0.0f, 0.0f);
 
 		//MATRICES FOR THE MODEL
@@ -180,7 +185,7 @@ class MeshLoader : public BaseProject {
 			
 	//MATRICES
 		glm::mat4 View;
-		glm::mat4 baseTr = glm::translate(glm::mat4(1), glm::vec3(0, 0, 0));
+		glm::mat4 baseTr = glm::mat4(1);
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSLGlobal;
@@ -220,6 +225,10 @@ class MeshLoader : public BaseProject {
 	Texture TskyBox, Tstars;
 	DescriptorSet DSskyBox, DSskyBoxPar;
 
+	//Model MFloor[1];
+	//std::vector<std::array<float,6>> vertices_pos_floor[1];
+	//DescriptorSet DSFloor;
+	//Texture TFloor;
 
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
@@ -242,9 +251,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 85;//aumento di 2
-		DPSZs.texturesInPool = 44;//aumentato di 1
-		DPSZs.setsInPool = 47;//aumento di 1
+		DPSZs.uniformBlocksInPool = 97;//aumento di 2
+		DPSZs.texturesInPool = 50;//aumentato di 1
+		DPSZs.setsInPool = 53;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -347,15 +356,40 @@ class MeshLoader : public BaseProject {
 		Tmoon.init(this, "textures/moon.jfif");
 		TskyBox.init(this, "textures/starmap_g4k.jpg");
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
-		
+
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
-
 		// updates the text
 		txt.init(this, &outText);
 		//txt2.init(this, &outText2);
 
 
+		//INITIALIZE THE COLLIDERS
+		InitializeColliders();
+
+		//CREATE THE MODEL FOR THE FLOOR
+		/*
+		TFloor.init(this, "textures/Textures_Food.png");
+		MakeFloor(2.0, vertices_pos_floor[0], MFloor[0].indices);
+
+		MFloor[0].vertices = std::vector<unsigned char>(vertices_pos_floor[0].size()*sizeof(BlinnVertex), 0);
+
+		for(int i = 0; i < vertices_pos_floor[0].size(); i++) {
+			BlinnVertex *V_vertex = (BlinnVertex *)(&(MFloor[0].vertices[i]));
+
+			V_vertex->pos.x = vertices_pos_floor[0][i][0];
+			V_vertex->pos.y = vertices_pos_floor[0][i][1];
+			V_vertex->pos.z = vertices_pos_floor[0][i][2];
+			V_vertex->UV.x = vertices_pos_floor[0][i][0];
+			V_vertex->UV.y = vertices_pos_floor[0][i][2];
+			V_vertex->norm.x = vertices_pos_floor[0][i][3];
+			V_vertex->norm.y = vertices_pos_floor[0][i][4];
+			V_vertex->norm.z = vertices_pos_floor[0][i][5];
+		}
+
+		MFloor[0].initMesh(this, &VDBlinn);
+		*/
+		
 	}
 	
 	void pipelinesAndDescriptorSetsInit() {
@@ -375,7 +409,11 @@ class MeshLoader : public BaseProject {
 		DSCar.init(this, &DSLBlinn, {&TCar});
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
+
+		//floor
+		//DSFloor.init(this, &DSLBlinn, {&TFloor});
 		
+		//scene pipelines and descriptor sets
 		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
 		txt.pipelinesAndDescriptorSetsInit();
 		//txt2.pipelinesAndDescriptorSetsInit();
@@ -398,6 +436,7 @@ class MeshLoader : public BaseProject {
 		DSmoonPar.cleanup();
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
+		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -435,14 +474,16 @@ class MeshLoader : public BaseProject {
 		scene.localCleanup();
 		txt.localCleanup();
 		//txt2.localCleanup();
+
+		//FLOOR
+		//TFloor.cleanup();
+		//MFloor[0].cleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
 		PEmission.destroy();
 		PScene.destroy();
 		PskyBox.destroy();
-
-		
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
@@ -460,6 +501,20 @@ class MeshLoader : public BaseProject {
 			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
+		//POPULATE SCENE
+		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+		//FLOOR
+		//MFloor[0].bind(commandBuffer);
+		//DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
+		//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
+		//vkCmdDrawIndexed(commandBuffer,
+		//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
+
+		
+		MCar.bind(commandBuffer);
+		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
+		vkCmdDrawIndexed(commandBuffer,
+			static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
 
 			PEmission.bind(commandBuffer);
 			Msun.bind(commandBuffer);
@@ -604,11 +659,14 @@ class MeshLoader : public BaseProject {
 		glm::vec3 r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
+		//fisso deltaT per evitare cambi di prestazione su diversi computer/grandezze dis schermi
+		//deltaT = 0.02f;
 		if (currScene == 2) {
 			deltaT = 0;
 		}
 		
-		
+
+			
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){
 			View = LookAt(Pos, r, deltaT);
@@ -647,8 +705,21 @@ class MeshLoader : public BaseProject {
 			Vel = glm::normalize(Vel) * MAX_SPEED;
 		}
 
-		//aggiorno la posizione
 		Pos += Vel * deltaT;
+
+		//aggiorno la posizione se non collide con questo collider
+		ColliderQuad col;
+		col = updateCollider();
+
+		//VERIFICO COLLISIONE
+		if(CollisionQuad(col, colObstacle[0]) || 
+		   CollisionQuad(col, colObstacle[1]) || 
+		   CollisionQuad(col, colObstacle[2]) || 
+		   CollisionQuad(col, colObstacle[3])) 
+		{
+			Pos -= Vel * deltaT;
+			Vel = glm::vec3(0.0f);
+		}
 
 		//aggiorno la velocità con l'attrito
 		decayFactor = FRICTION * deltaT;
@@ -659,7 +730,7 @@ class MeshLoader : public BaseProject {
 		}
 		
 		//aggiorno la posizione e la direzione della macchina
-		carYaw -= -m.z * (glm::length(Vel) / turningRadius) * deltaT;
+		carYaw -= -m.z * (glm::length(Vel) / turningRadius) * 0.02  ;// * deltaT
 
 		//rotazione iniziale
 		initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, -1, 0));
@@ -777,6 +848,23 @@ class MeshLoader : public BaseProject {
 			i++;
         }
 
+		/* FLOOR POSITION ******************************************************************************************** */
+		/*
+		BlinnUniformBufferObject uboFloor{};
+		BlinnMatParUniformBufferObject uboFloorMatPar{};
+
+		uboFloor.mMat = glm::mat4( 54, 0, 0, 0,
+								   0, 54, 0, 0,
+								   0, 0, 54, 0,
+								   -15, -53.99, 30, 1);
+		uboFloor.mvpMat = View * uboFloor.mMat;
+		uboFloor.nMat = glm::transpose(glm::inverse(uboFloor.mMat));
+
+		uboFloorMatPar.Power = 200.0;
+
+		DSFloor.map(currentImage, &uboFloor, 0);
+		DSFloor.map(currentImage, &uboFloorMatPar, 2);
+		*/
 		//SKYBOX
 
 		skyBoxUniformBufferObject sbubo{};
@@ -792,7 +880,7 @@ class MeshLoader : public BaseProject {
 		
 	}	
 
-	//Move the car, todo: implement dynamic
+	//MOVE THE CAR
 	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {
 		glm::mat4 M = glm::mat4(1.0f);
 
@@ -890,6 +978,146 @@ class MeshLoader : public BaseProject {
 		
 		//Creo la matrice di view e projection
 		return MakeViewProjectionLookInDirection(CamPos, camYaw - carYaw, camPitch, 0.0f, FOVy, Ar, nearPlane, farPlane); //using carYaw with camYaw to maintain the relative angle of the camera
+	}
+	
+	//CREATE THE FLOOR
+	void MakeFloor(float size, std::vector<std::array<float,6>> &vertices, std::vector<uint32_t> &indices) {
+
+		vertices = {
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
+					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
+
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
+
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{-size / 2.0f, size / 2.0f, size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, -1, 0, 0},
+					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
+
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
+
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 1, 0, 0},
+					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
+		};
+
+		indices = {
+					0, 1, 2, 1, 3, 2,
+					22, 12, 14, 22, 20, 12,
+					17, 13, 21, 9, 13, 17,
+					18, 8, 16, 10, 8, 18,
+					11, 19, 15, 15, 19, 23,
+					5, 6, 7, 4, 6, 5 
+		};
+	}
+
+	//COLLISION DETECTION
+	bool CollisionQuad(ColliderQuad obj1, ColliderQuad obj2){
+		
+		if(CollisionQuadPoint(obj1.vertice1, obj2) || CollisionQuadPoint(obj1.vertice2, obj2) || CollisionQuadPoint(obj1.vertice3, obj2) || CollisionQuadPoint(obj1.vertice4, obj2)){
+			return true;
+		if(CollisionQuadPoint(obj2.vertice1, obj1) || CollisionQuadPoint(obj2.vertice2, obj1) || CollisionQuadPoint(obj2.vertice3, obj1) || CollisionQuadPoint(obj2.vertice4, obj1)){
+			return true;
+		}
+		}else{
+			return false;
+		}
+	}
+	bool CollisionQuadPoint(glm::vec3 point, ColliderQuad obj){
+		//determining which point has the highest x and z coordinates
+		float maxX = obj.vertice1.x;
+		float minX = obj.vertice1.x;
+
+		float maxZ = obj.vertice1.z;
+		float minZ = obj.vertice1.z;
+
+		if(obj.vertice2.x > maxX){
+			maxX = obj.vertice2.x;
+		}else {
+			minX = obj.vertice2.x;
+
+			if(obj.vertice3.x >= maxX){
+				maxX = obj.vertice3.x;
+			} else{
+				minX = obj.vertice3.x;
+			}
+		}
+
+		if(obj.vertice2.z > maxZ){
+			maxZ = obj.vertice2.z;
+		}else {
+			minZ = obj.vertice2.z;
+
+			if(obj.vertice3.z >= maxZ){
+				maxZ = obj.vertice3.z;
+			} else{
+				minZ = obj.vertice3.z;
+			}
+		}
+
+		//checking if the point is inside the quad
+		if(point.x >= minX && point.x <= maxX && point.z >= minZ && point.z <= maxZ){
+			return true;
+		}else{
+			return false;
+		}
+	}
+	void InitializeColliders(){
+		
+		colObstacle[0].vertice1 = glm::vec3(-5, 0, 7);
+		colObstacle[0].vertice2 = glm::vec3(-5, 0, -7);
+		colObstacle[0].vertice3 = glm::vec3(5, 0, 7);
+		colObstacle[0].vertice4 = glm::vec3(5, 0, -7);
+
+		colObstacle[1].vertice1 = glm::vec3(22, 0, 10);
+		colObstacle[1].vertice2 = glm::vec3(22, 0, 20);
+		colObstacle[1].vertice3 = glm::vec3(8, 0, 10);
+		colObstacle[1].vertice4 = glm::vec3(8, 0, 20);
+
+		colObstacle[2].vertice1 = glm::vec3(-25, 0, 38);
+		colObstacle[2].vertice2 = glm::vec3(-25, 0, 52);
+		colObstacle[2].vertice3 = glm::vec3(-35, 0, 38);
+		colObstacle[2].vertice4 = glm::vec3(-35, 0, 52);
+
+		colObstacle[3].vertice1 = glm::vec3(-38, 0, 55);
+		colObstacle[3].vertice2 = glm::vec3(-38, 0, 65);
+		colObstacle[3].vertice3 = glm::vec3(-52, 0, 55);
+		colObstacle[3].vertice4 = glm::vec3(-52, 0, 65);
+
+
+	}
+	ColliderQuad updateCollider(){
+		ColliderQuad col;
+
+		glm::vec3 halfExtents = glm::vec3(R / 2, 0, W / 2);
+		glm::vec3 localVertice1 = glm::vec3(-halfExtents.x, 0, -halfExtents.z);
+		glm::vec3 localVertice2 = glm::vec3(halfExtents.x, 0, -halfExtents.z);
+		glm::vec3 localVertice3 = glm::vec3(halfExtents.x, 0, halfExtents.z);
+		glm::vec3 localVertice4 = glm::vec3(-halfExtents.x, 0, halfExtents.z);
+		
+		col.vertice1 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice1, 1.0));
+		col.vertice2 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice2, 1.0));
+		col.vertice3 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice3, 1.0));
+		col.vertice4 = Pos + glm::vec3(rotationMatrix * glm::vec4(localVertice4, 1.0));
+		return col;
 	}
 
 };
