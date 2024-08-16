@@ -186,10 +186,9 @@ class MeshLoader : public BaseProject {
 	DescriptorSet DSskyBox, DSskyBoxPar;
 
 	//Model MFloor[1];
-	Model MFloor;
-	std::vector<std::array<float,6>> vertices_pos_floor[1];
-	DescriptorSet DSFloor;
-	Texture TFloor;
+	//std::vector<std::array<float,6>> vertices_pos_floor[1];
+	//DescriptorSet DSFloor;
+	//Texture TFloor;
 
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
@@ -209,9 +208,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 89;//aumento di 2
-		DPSZs.texturesInPool = 46;//aumentato di 1
-		DPSZs.setsInPool = 49;//aumento di 1
+		DPSZs.uniformBlocksInPool = 97;//aumento di 2
+		DPSZs.texturesInPool = 50;//aumentato di 1
+		DPSZs.setsInPool = 53;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -318,9 +317,8 @@ class MeshLoader : public BaseProject {
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
 
 		//CREATE THE MODEL FOR THE FLOOR
-		TFloor.init(this, "textures/Textures_Food.png");
-		MFloor.init(this, &VDBlinn, "models/Cube.obj", OBJ);
 		/*
+		TFloor.init(this, "textures/Textures_Food.png");
 		MakeFloor(2.0, vertices_pos_floor[0], MFloor[0].indices);
 
 		MFloor[0].vertices = std::vector<unsigned char>(vertices_pos_floor[0].size()*sizeof(BlinnVertex), 0);
@@ -362,7 +360,7 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 
 		//floor
-		DSFloor.init(this, &DSLBlinn, {&TFloor});
+		//DSFloor.init(this, &DSLBlinn, {&TFloor});
 		
 		//scene pipelines and descriptor sets
 		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
@@ -387,7 +385,7 @@ class MeshLoader : public BaseProject {
 		DSmoonPar.cleanup();
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
-		DSFloor.cleanup();
+		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -423,8 +421,7 @@ class MeshLoader : public BaseProject {
 		scene.localCleanup();
 
 		//FLOOR
-		TFloor.cleanup();
-		MFloor.cleanup();
+		//TFloor.cleanup();
 		//MFloor[0].cleanup();
 		
 		// Destroies the pipelines
@@ -447,11 +444,8 @@ class MeshLoader : public BaseProject {
 		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 		//FLOOR
 		//MFloor[0].bind(commandBuffer);
-		MFloor.bind(commandBuffer);
-		DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
-		DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(MFloor.indices.size()), 1, 0, 0, 0);
+		//DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
+		//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
 		//vkCmdDrawIndexed(commandBuffer,
 		//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
 
@@ -751,6 +745,7 @@ class MeshLoader : public BaseProject {
         }
 
 		/* FLOOR POSITION ******************************************************************************************** */
+		/*
 		BlinnUniformBufferObject uboFloor{};
 		BlinnMatParUniformBufferObject uboFloorMatPar{};
 
@@ -765,7 +760,7 @@ class MeshLoader : public BaseProject {
 
 		DSFloor.map(currentImage, &uboFloor, 0);
 		DSFloor.map(currentImage, &uboFloorMatPar, 2);
-
+		*/
 		//SKYBOX
 
 		skyBoxUniformBufferObject sbubo{};
