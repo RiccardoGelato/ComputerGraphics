@@ -78,10 +78,10 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(16,483): 
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(114,1): warning C4267: '+=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(123,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(124,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(130,1): warning C4305: '=': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(132,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(130,17): warning C4244: '=': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(134,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(551,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(733,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(805,1): warning C4305: '=': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(806,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(754,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(826,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(827,1): warning C4305: '=': troncamento da 'double' a 'float'
   ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe

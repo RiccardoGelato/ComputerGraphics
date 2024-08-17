@@ -575,13 +575,14 @@ class MeshLoader : public BaseProject {
 			if(!debounce) {
 				debounce = true;
 				curDebounce = GLFW_KEY_P;
-				
-				if(cameraType == 0){
+				cameraType = (cameraType + 1) % 3;
+ 
+				/*if (cameraType == 0) {
 					cameraType = 1;
 				}
 				else{
 					cameraType = 0;
-				}
+				}*/
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_P) && debounce) {
@@ -670,8 +671,28 @@ class MeshLoader : public BaseProject {
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){
 			View = LookAt(Pos, r, deltaT);
-		}else{
+		}else if(cameraType == 1){
 			View = LookInDirection(Pos, r, deltaT);
+		}
+		else {
+			glm::mat4 M = glm::mat4(1.0f / 20.0f, 0, 0, 0,
+				0, -4.0f / 60.f, 0, 0,
+				0, 0, 1.0f / (-500.0f - 500.0f), 0,
+				0, 0, -500.0f / (-500.0f - 500.0f), 1);
+			M = M * glm::mat4(1, 0, 0, 0,
+				0, cos(glm::radians(35.26f)), sin(glm::radians(35.26f)), 0,
+				0, -sin(glm::radians(35.26f)), cos(glm::radians(35.26f)), 0,
+				0, 0, 0, 1);
+			M = M * glm::mat4(cos(glm::radians(45.0f)), 0, sin(glm::radians(45.0f)), 0,
+				0, 1, 0, 0,
+				-sin(glm::radians(45.0f)), 0, cos(glm::radians(45.0f)), 0,
+				0, 0, 0, 1);
+			glm::mat4 Mv = glm::inverse(
+				glm::translate(glm::mat4(1), Pos) *
+				glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0, 1, 0)) *
+				glm::translate(glm::mat4(1), glm::vec3(0, 2, 8))
+			);
+			View = M * Mv;
 		}
 
 		glm::mat4 M = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 160.0f);
@@ -916,6 +937,24 @@ class MeshLoader : public BaseProject {
 		glm::mat4 MPitch = glm::rotate(glm::mat4(1.0f), Pitch, glm::vec3(-1, 0, 0));
 		glm::mat4 MRoll = glm::rotate(glm::mat4(1.0f), Roll, glm::vec3(0, 0, -1));
 		glm::mat4 MS = glm::scale(glm::mat4(1.0), glm::vec3(1,-1,1));
+
+		M = M * MS * MRoll * MPitch * MYaw * MT;
+
+		return M;
+	}
+
+	//LOOK IN DIRECTION MATRIX
+	glm::mat4 MakeIsometricViewProjectionLookAt(glm::vec3 Pos, float Yaw, float Pitch, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
+
+		glm::mat4 M = glm::mat4(1.0f);
+
+		M = glm::perspective(FOVy, Ar, nearPlane, farPlane);
+
+		glm::mat4 MT = glm::translate(glm::mat4(1.0f), glm::vec3(-Pos[0], -Pos[1], -Pos[2]));
+		glm::mat4 MYaw = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0, -1, 0));
+		glm::mat4 MPitch = glm::rotate(glm::mat4(1.0f), Pitch, glm::vec3(-1, 0, 0));
+		glm::mat4 MRoll = glm::rotate(glm::mat4(1.0f), Roll, glm::vec3(0, 0, -1));
+		glm::mat4 MS = glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1));
 
 		M = M * MS * MRoll * MPitch * MYaw * MT;
 

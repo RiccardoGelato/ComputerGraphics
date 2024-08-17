@@ -122,13 +122,15 @@ struct TextMaker {
 		
 		float PtoTsx = 2.0/800.0;
 		float PtoTsy = 2.0/600.0;
-		float PtoTdx;
-		/*if ((*Texts)[0].alignment == Menu) {
-			PtoTdx = -(PtoTsx * totLen / 2);
+		//todo
+		float PtoTdx[4] = {};
+		for (auto& Txt : *Texts) {
+			for (int i = 0; i < Txt.usedLines; i++) {
+				
+				PtoTdx[i] = -(0.03 * strlen(Txt.l[i]) / 2);
+			}
+			break;
 		}
-		else {*/
-			PtoTdx = - 0.95;
-		//}
 		float PtoTdy = -0.95;
 		
 		int minChar = 32;
@@ -154,7 +156,7 @@ struct TextMaker {
 						TextVertex *V_vertex = (TextVertex *)(&vertex[0]);
 			
 						V_vertex->pos = {
-							(float)(tpx + d.xoffset) * PtoTsx + PtoTdx,
+							(float)(tpx + d.xoffset) * PtoTsx + PtoTdx[i],
 							(float)(tpy + d.yoffset) * PtoTsy + PtoTdy
 						};						
 						V_vertex->texCoord = {
@@ -165,7 +167,7 @@ struct TextMaker {
 						// M.vertices.push_back(vertex);
 				
 						V_vertex->pos = {
-							(float)(tpx + d.xoffset + d.width) * PtoTsx + PtoTdx,
+							(float)(tpx + d.xoffset + d.width) * PtoTsx + PtoTdx[i],
 							(float)(float)(tpy + d.yoffset) * PtoTsy + PtoTdy
 						};						
 						V_vertex->texCoord = {
@@ -175,7 +177,7 @@ struct TextMaker {
 						M.vertices.insert(M.vertices.end(), vertex.begin(), vertex.end());
 			
 						V_vertex->pos = {
-							(float)(tpx + d.xoffset) * PtoTsx + PtoTdx,
+							(float)(tpx + d.xoffset) * PtoTsx + PtoTdx[i],
 							(float)(tpy + d.yoffset + d.height) * PtoTsy + PtoTdy
 						};						
 						V_vertex->texCoord = {
@@ -185,7 +187,7 @@ struct TextMaker {
 						M.vertices.insert(M.vertices.end(), vertex.begin(), vertex.end());
 			
 						V_vertex->pos = {
-							(float)(tpx + d.xoffset + d.width) * PtoTsx + PtoTdx,
+							(float)(tpx + d.xoffset + d.width) * PtoTsx + PtoTdx[i],
 							(float)(tpy + d.yoffset + d.height) * PtoTsy + PtoTdy
 						};						
 						V_vertex->texCoord = {
