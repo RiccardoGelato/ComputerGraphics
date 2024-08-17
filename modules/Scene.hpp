@@ -86,7 +86,7 @@ class SceneProject {
         for(auto& instance : instancesParsed) {
             
             DSScene[i] = new DescriptorSet();
-            DSScene[i]->init(BP, &DSL, { &textures[instance.second.texture] });
+            DSScene[i]->init(BP, &DSL, { &textures[instance.second.texture], &textures[instance.second.texture], &textures[instance.second.texture] });
             i++;
 		}
 	}

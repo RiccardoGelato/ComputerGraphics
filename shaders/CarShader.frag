@@ -30,9 +30,12 @@ layout(set = 0, binding = 0) uniform CarUniformBufferObject {
 layout(set = 1, binding = 2) uniform CarParUniformBufferObject {
 	float Pow;
 	float isCar;
+	float carTexture;
 } mubo;
 
 layout(set = 1, binding = 1) uniform sampler2D tex;
+layout(set = 1, binding = 3) uniform sampler2D tex2;
+layout(set = 1, binding = 4) uniform sampler2D tex3;
 
 //FUNCTIONS DIFFERENT LIGHTS
 //Type:
@@ -156,12 +159,15 @@ void main() {
 	vec3 Norm = normalize(fragNorm);
 	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
 	vec3 Albedo = texture(tex, fragUV).rgb;
-	/*if(mubo.isCar == 1){
-	    if(Albedo.x >0.4){
-	        Albedo = vec3(0.0, 0.0, 0.0);
-	    }
-
-	}*/
+	if(mubo.isCar == 1){
+        if(mubo.carTexture == 0){
+            Albedo = texture(tex, fragUV).rgb;
+        }else if(mubo.carTexture == 1){
+            Albedo = texture(tex2, fragUV).rgb;
+        }else{
+            Albedo = texture(tex3, fragUV).rgb;
+        }
+	}
 
 	vec3 RendEqSol = vec3(0);
 	

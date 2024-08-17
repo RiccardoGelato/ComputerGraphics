@@ -71,6 +71,7 @@ struct BlinnUniformBufferObject {
 struct BlinnMatParUniformBufferObject {
 	alignas(4)  float Power;
 	alignas(4)  float isCar;
+	alignas(4)  float carTexture;
 };
 
 //UNIFORM BUFFER - GLOBAL -
@@ -186,6 +187,8 @@ class MeshLoader : public BaseProject {
 		float showClouds;
 	//GamePause
 		float gamePaused = 0;
+	//CarTexture
+		float carTexture = 0;
 			
 	//MATRICES
 		glm::mat4 View;
@@ -244,7 +247,7 @@ class MeshLoader : public BaseProject {
 	DescriptorSet DSship;
 
 	//********************TEXTURES
-	Texture TCar;
+	Texture TCar, TCar2, TCar3;
 	Texture Tship;
 
 	TextMaker txt;
@@ -260,7 +263,7 @@ class MeshLoader : public BaseProject {
 		
 		// Descriptor pool sizes
 		DPSZs.uniformBlocksInPool = 104;//aumento di 2
-		DPSZs.texturesInPool = 54;//aumentato di 1
+		DPSZs.texturesInPool = 56;//aumentato di 1
 		DPSZs.setsInPool = 57;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
@@ -294,7 +297,9 @@ class MeshLoader : public BaseProject {
 		DSLBlinn.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
-			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
+			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1},
+			{3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1},
+			{4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 2, 1}
 		});
 		
 		DSLHair.init(this, {
@@ -352,7 +357,7 @@ class MeshLoader : public BaseProject {
 
 		// Pipelines INITIALIZATION [Shader couples]
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission, &DSLSunPar});
-		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
+		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn});
 		PHair.init(this, &VDHair, "shaders/TanVert.spv", "shaders/WardFrag.spv", {&DSLGlobal, &DSLHair});
 		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
 		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
@@ -372,7 +377,9 @@ class MeshLoader : public BaseProject {
 		M4.initMesh(this, &VD);*/
 
 		// Create the textures
-		TCar.init(this, "textures/CarTextureNera.png");
+		TCar.init(this, "textures/CarTexture.png");
+		TCar2.init(this, "textures/CarTextureVariant.png");
+		TCar3.init(this, "textures/CarTextureNera.png");
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 		Tmoon.init(this, "textures/moon.jfif");
@@ -429,8 +436,8 @@ class MeshLoader : public BaseProject {
 		DSmoon.init(this, &DSLEmission, { &Tmoon });
 		DSmoonPar.init(this, &DSLSunPar, {});
 		DSGlobal.init(this, &DSLGlobal, {});
-		DSship.init(this, &DSLBlinn, {&Tship});
-		DSCar.init(this, &DSLBlinn, {&TCar});
+		DSship.init(this, &DSLBlinn, {&Tship,&Tship ,&Tship });
+		DSCar.init(this, &DSLBlinn, {&TCar,&TCar2 ,&TCar3 });
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
@@ -472,6 +479,8 @@ class MeshLoader : public BaseProject {
 
 	void localCleanup() {
 		TCar.cleanup();
+		TCar2.cleanup();
+		TCar3.cleanup();
 		MCar.cleanup();
 
 		Tship.cleanup();
@@ -684,6 +693,24 @@ class MeshLoader : public BaseProject {
 			}
 		}
 
+		//CHANGING TEXTURE
+		if (glfwGetKey(window, GLFW_KEY_5)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_5;
+				carTexture = carTexture + 1;
+				if (carTexture == 3) {
+					carTexture = 0;
+				}
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_5) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
 		//TIMERS AND MOVEMENT CONTROL ******************************************************************************************** */
 		float deltaT;
 		glm::vec3 m = glm::vec3(0.0f);
@@ -736,6 +763,7 @@ class MeshLoader : public BaseProject {
 		BlinnMatParUniformBufferObject uboCarMatPar{};
 		uboCarMatPar.Power = 200.0;
 		uboCarMatPar.isCar = 1.0;
+		uboCarMatPar.carTexture = carTexture;
 		DSCar.map(currentImage, &uboCarMatPar, 2);
 		
 		BlinnUniformBufferObject uboCar{};
@@ -891,6 +919,7 @@ class MeshLoader : public BaseProject {
 
 			uboSceneMatPar.Power = 200.0;
 			uboSceneMatPar.isCar = 0.0;
+			uboSceneMatPar.carTexture = 0.0;
 
 			uboScene.mMat = instance.second.transform;
 			uboScene.mvpMat = View * uboScene.mMat;
