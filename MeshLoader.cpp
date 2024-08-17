@@ -259,9 +259,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 100;//aumento di 2
-		DPSZs.texturesInPool = 52;//aumentato di 1
-		DPSZs.setsInPool = 55;//aumento di 1
+		DPSZs.uniformBlocksInPool = 104;//aumento di 2
+		DPSZs.texturesInPool = 54;//aumentato di 1
+		DPSZs.setsInPool = 57;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -335,7 +335,7 @@ class MeshLoader : public BaseProject {
 			{0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(EmissionVertex, UV),
 					sizeof(glm::vec2), UV}
 		});
-
+		
 		VDHair.init(this, {
 			{0, sizeof(HairVertex), VK_VERTEX_INPUT_RATE_VERTEX}
 		}, {
@@ -372,7 +372,7 @@ class MeshLoader : public BaseProject {
 		M4.initMesh(this, &VD);*/
 
 		// Create the textures
-		TCar.init(this, "textures/CarTextureVariant.png");
+		TCar.init(this, "textures/CarTextureNera.png");
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 		Tmoon.init(this, "textures/moon.jfif");
@@ -542,6 +542,7 @@ class MeshLoader : public BaseProject {
 		
 
 			//HAIR
+			
 			PHair.bind(commandBuffer);
 			MHair.bind(commandBuffer);
 			DSGlobal.bind(commandBuffer, PHair, 0, currentImage);
@@ -938,7 +939,7 @@ class MeshLoader : public BaseProject {
 		//uboHair.mMat = translationMatrix * trsanslationMatrix * rotationMatrix;
 		//uboHair.mvpMat = View * uboHair.mMat;
 		//uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
-		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.1,0.1,0.1));
+		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.5,0.5,0.5));
 		uboHair.mvpMat = View * uboHair.mMat;
 		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
 		DSHair.map(currentImage, &uboHair, 0);
