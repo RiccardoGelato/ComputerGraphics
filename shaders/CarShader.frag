@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_debug_printf : enable
 
 #define NLIGHTS 4
 
@@ -24,6 +25,7 @@ layout(set = 0, binding = 0) uniform CarUniformBufferObject {
     float cosOut;
     float lightOn;
     float BDRFState;
+    vec2 lightType[NLIGHTS];
 } gubo;
 
 layout(set = 1, binding = 2) uniform CarParUniformBufferObject {
@@ -34,6 +36,10 @@ layout(set = 1, binding = 2) uniform CarParUniformBufferObject {
 layout(set = 1, binding = 1) uniform sampler2D tex;
 
 //FUNCTIONS DIFFERENT LIGHTS
+//Type:
+//0-direct
+//1-spot
+//2-point
 
 vec3 direct_light_dir(vec3 pos, int i) {
 	return normalize(gubo.lightDir[0]);
@@ -62,6 +68,30 @@ vec3 spot_light_color(vec3 pos, int i) {
 	float division = gubo.lightColor[i].a / length(gubo.lightPos[i] - pos);
     float decay = pow(division, 1.2);
 	return decay * gubo.lightColor[i].rgb * gubo.lightColor[i].rgb * clamp((cosa - gubo.cosOut)/(gubo.cosIn - gubo.cosOut), 0 ,1);
+}
+
+vec3 light_dir(vec3 pos, int i, float type){
+    vec3 dir;
+    if(type == 0){
+        dir = direct_light_dir(pos, i);
+    }else if(type == 1){
+        dir = point_light_dir(pos, i);
+    }else{
+        dir = spot_light_dir(pos, i);
+    }
+    return dir;
+}
+
+vec3 light_color(vec3 pos, int i,float type){
+    vec3 color;
+    if(type == 0){
+        color = direct_light_color(pos, i);
+    }else if(type == 1){
+        color = point_light_color(pos, i);
+    }else{
+        color = spot_light_color(pos, i);
+    }
+    return color;
 }
 
 vec3 BRDFNormal(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
@@ -133,29 +163,37 @@ void main() {
 	    }
 
 	}*/
+
 	vec3 RendEqSol = vec3(0);
-	vec3 lightDir;
-    vec3 lightColor;
+	
+	/*
+	for(int j= 0; j < NLIGHTS; j++){
+	    vec3 lightDir = light_dir(fragPos, j, gubo.lightType[j].x);
+        vec3 lightColor = light_color(fragPos, j, gubo.lightType[j].x);
 
-	lightDir = direct_light_dir(fragPos, 0);
-    lightColor = direct_light_color(fragPos, 0);
+    	RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
+	}*/
 
-	RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
-	lightDir = spot_light_dir(fragPos, 1);
-    lightColor = spot_light_color(fragPos, 1);
+	vec3 lightDir = light_dir(fragPos, 0, 0);
+    vec3 lightColor = light_color(fragPos, 0, 0);
 
-    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor * gubo.lightOn;
+    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
-    lightDir = spot_light_dir(fragPos, 2);
-    lightColor = spot_light_color(fragPos, 2);
+    lightDir = light_dir(fragPos, 1, 2);
+    lightColor = light_color(fragPos, 1, 2);
 
-    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor * gubo.lightOn;
+    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
-    lightDir = direct_light_dir(fragPos, 3);
-    lightColor = direct_light_color(fragPos, 3);
+    lightDir = light_dir(fragPos, 2, 2);
+    lightColor = light_color(fragPos, 2, 2);
 
-    RendEqSol += BRDF(Albedo, Norm, EyeDir, -lightDir) * lightColor;
+    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
+
+    lightDir = light_dir(fragPos, 3, 0);
+    lightColor = light_color(fragPos, 3, 0);
+
+    RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
 	const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;

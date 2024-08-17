@@ -41,9 +41,9 @@ const char* bdrfState[2] = { "Blinn", "Toon" };
 const char* bdrf = bdrfState[0];
 
 std::vector<SingleText> outText = {
-	{2, {"Menu", "Press 4 To Start", "", ""}, 0, 0, 0},
-	{1, {"Press 4 To See Commands","","", ""}, 0, 0, 0},
-	{4, {"HeadLights: 1","BDRF: 2","Clouds: 3", "Press 4 To Restart"}, 0, 0, 0},
+	{2, {"Menu", "Press 4 To Start", "", "", ""}, 0, 0, 0},
+	{1, {"Press 4 To See Commands","","", "",""}, 0, 0, 0},
+	{5, {"HeadLights: 1","BDRF: 2","Clouds: 3","P to change camera", "Press 4 To Restart"}, 0, 0, 0},
 };
 
 std::vector<SingleText> outText2 = {
