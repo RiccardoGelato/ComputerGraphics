@@ -59,18 +59,6 @@ vec3 spot_light_color(vec3 pos, int i) {
 
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT, float alphaB) {
 
-    /*Parameters:
-        V	   - Viewer direction
-        N	   - Normal vector direction
-        L	   - Light direction
-        T	   - Tangent vector direction
-        B	   - Bitangent vector direction
-        Md	   - Diffuse color
-        Ms	   - Specular color
-        alphaT - Roughness along the tangent direction
-        alphaB - Roughness along the bitangent direction
-    */
-
 	vec3 Diffuse = Md * clamp(dot(N, L),0.0,1.0);
 	//vec3 Specular = Ms * vec3(pow(clamp(dot(V, -reflect(L, N)),0.0,1.0), 200.0f));
 	vec3 H = normalize(L + V);
@@ -87,7 +75,7 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT
 
 void main() {
 
-	vec3 Norm = normalize(fragNorm);
+	    vec3 Norm = normalize(fragNorm);
     	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
     	vec3 Albedo = texture(tex, fragUV).rgb;
     	vec3 specCol = texture(spet, fragUV).rgb;
@@ -118,7 +106,7 @@ void main() {
         RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor;
 
     	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
-    	const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;
+    	/*const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;
         const vec3 cxn = vec3(0.1,0.0,0.0) * 0.025f;
         const vec3 cyp = vec3(0.0,1.0,0.0) * 0.025f;
         const vec3 cyn = vec3(0.0,0.1,0.0) * 0.025f;
@@ -128,9 +116,8 @@ void main() {
         Ambient =((Norm.x > 0 ? cxp : cxn) * (Norm.x * Norm.x) +
                   (Norm.y > 0 ? cyp : cyn) * (Norm.y * Norm.y) +
                   (Norm.z > 0 ? czp : czn) * (Norm.z * Norm.z)) * Albedo;
-
+*/
     	vec3 col = RendEqSol + Ambient;
-
-        outColor = vec4(0.0, 0.0, 0.0, 1.0);
-    	//outColor = vec4(col, 1.0f);
+    	
+    	outColor = vec4(col, 1.0f);
 }

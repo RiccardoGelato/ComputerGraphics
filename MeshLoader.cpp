@@ -62,12 +62,6 @@ std::vector<SingleText> outText4 = {
 	{1, {"Clouds(3): OFF","","", ""}, 0, 0, 2},
 };
 
-struct GlobalUniformBufferObjectHair {
-	alignas(16) glm::vec3 lightDir;
-	alignas(16) glm::vec4 lightColor;
-	alignas(16) glm::vec3 eyePos;
-};
-
 struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 	alignas(16) glm::mat4 mMat;
@@ -202,15 +196,14 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
 	DescriptorSetLayout DSLSunPar;
-	DescriptorSetLayout DSLHair;
 	DescriptorSetLayout DSLskyBox;	// For skyBox
-	DescriptorSetLayout DSLskyBoxPar;	// For skyBox parameters
+	DescriptorSetLayout DSLskyBoxPar;
+	DescriptorSetLayout DSLHair;	// For skyBox parameters
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
 	VertexDescriptor VDHair;
-	/*VertexDescriptor VDskyBox;*/
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PBlinn;
@@ -266,9 +259,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 99;//aumento di 2
+		DPSZs.uniformBlocksInPool = 100;//aumento di 2
 		DPSZs.texturesInPool = 52;//aumentato di 1
-		DPSZs.setsInPool = 54;//aumento di 1
+		DPSZs.setsInPool = 55;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -441,7 +434,6 @@ class MeshLoader : public BaseProject {
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
-		DSGlobalHair.init(this, &DSLGlobalHair, {});
 
 		//floor
 		//DSFloor.init(this, &DSLBlinn, {&TFloor});
@@ -470,7 +462,6 @@ class MeshLoader : public BaseProject {
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
 		DSHair.cleanup();
-		DSGlobalHair.cleanup();
 		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
@@ -506,7 +497,6 @@ class MeshLoader : public BaseProject {
 		DSLEmission.cleanup();
 		DSLSunPar.cleanup();
 		DSLHair.cleanup();
-		DSGlobalHair.cleanup();
 		DSLskyBox.cleanup();
 		DSLskyBoxPar.cleanup();
 
@@ -554,7 +544,7 @@ class MeshLoader : public BaseProject {
 			//HAIR
 			PHair.bind(commandBuffer);
 			MHair.bind(commandBuffer);
-			DSGlobalHair.bind(commandBuffer, PHair, 0, currentImage);
+			DSGlobal.bind(commandBuffer, PHair, 0, currentImage);
 			DSHair.bind(commandBuffer, PHair, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MHair.indices.size()), 1, 0, 0, 0);
@@ -942,21 +932,16 @@ class MeshLoader : public BaseProject {
     
 		/******************************************************************** */
 		BlinnUniformBufferObject uboHair{};
-		GlobalUniformBufferObjectHair guboHair{};
-		guboHair.lightDir = gubo.lightDir[0];
-		guboHair.lightColor = gubo.lightColor[0];
-		guboHair.eyePos = gubo.eyePos;
 		//glm::vec3 translationVector(-0.45f, 0.75f, -0.25f);
 		//glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationVector);
 
 		//uboHair.mMat = translationMatrix * trsanslationMatrix * rotationMatrix;
 		//uboHair.mvpMat = View * uboHair.mMat;
 		//uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
-		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.5,0.5,0.5));
+		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.1,0.1,0.1));
 		uboHair.mvpMat = View * uboHair.mMat;
 		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
-		DSHair.map(currentImage, &guboHair, 0);
-		DSHair.map(currentImage, &uboHair, 1);
+		DSHair.map(currentImage, &uboHair, 0);
 	}	
 
 	//MOVE THE CAR

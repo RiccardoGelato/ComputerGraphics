@@ -25,7 +25,6 @@ layout(set = 0, binding = 0) uniform CarUniformBufferObject {
     float cosOut;
     float lightOn;
     float BDRFState;
-    vec2 lightType[NLIGHTS];
 } gubo;
 
 layout(set = 1, binding = 2) uniform CarParUniformBufferObject {
@@ -196,16 +195,16 @@ void main() {
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
-	const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;
-    const vec3 cxn = vec3(0.1,0.0,0.0) * 0.025f;
+	/*const vec3 cxp = vec3(1.0,1.0,1.0) * 0.025f;
+    const vec3 cxn = vec3(1.0,1.0,1.0) * 0.025f;
     const vec3 cyp = vec3(0.0,1.0,0.0) * 0.025f;
-    const vec3 cyn = vec3(0.0,0.1,0.0) * 0.025f;
-    const vec3 czp = vec3(0.0,0.0,0.1) * 0.025f;
-    const vec3 czn = vec3(0.0,0.0,0.1) * 0.025f;
+    const vec3 cyn = vec3(0.0,1.0,0.0) * 0.025f;
+    const vec3 czp = vec3(1.0,1.0,1.0) * 0.025f;
+    const vec3 czn = vec3(1.0,1.0,1.0) * 0.025f;
 
     Ambient =((Norm.x > 0 ? cxp : cxn) * (Norm.x * Norm.x) +
               (Norm.y > 0 ? cyp : cyn) * (Norm.y * Norm.y) +
-              (Norm.z > 0 ? czp : czn) * (Norm.z * Norm.z)) * Albedo;
+              (Norm.z > 0 ? czp : czn) * (Norm.z * Norm.z)) * Albedo;*/
 
 	vec3 col = RendEqSol + Ambient;
 	
