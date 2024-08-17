@@ -62,7 +62,11 @@ std::vector<SingleText> outText4 = {
 	{1, {"Clouds(3): OFF","","", ""}, 0, 0, 2},
 };
 
-
+struct GlobalUniformBufferObjectHair {
+	alignas(16) glm::vec3 lightDir;
+	alignas(16) glm::vec4 lightColor;
+	alignas(16) glm::vec3 eyePos;
+};
 
 struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
@@ -121,6 +125,12 @@ struct EmissionVertex {
 	glm::vec2 UV;
 };
 
+struct HairVertex {
+	glm::vec3 pos;
+	glm::vec3 norm;
+	glm::vec4 tan;
+	glm::vec2 UV;
+};
 
 
 
@@ -192,19 +202,20 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
 	DescriptorSetLayout DSLEmission;
 	DescriptorSetLayout DSLSunPar;
-	DescriptorSetLayout DSLScene;
+	DescriptorSetLayout DSLHair;
 	DescriptorSetLayout DSLskyBox;	// For skyBox
 	DescriptorSetLayout DSLskyBoxPar;	// For skyBox parameters
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
 	VertexDescriptor VDEmission;
+	VertexDescriptor VDHair;
 	/*VertexDescriptor VDskyBox;*/
 
 	//********************PIPELINES [Shader couples]
 	Pipeline PBlinn;
 	Pipeline PEmission;
-	Pipeline PScene;
+	Pipeline PHair;
 	Pipeline PskyBox;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
@@ -224,6 +235,10 @@ class MeshLoader : public BaseProject {
 	Model MskyBox;
 	Texture TskyBox, Tstars;
 	DescriptorSet DSskyBox, DSskyBoxPar;
+
+	Model MHair;
+	Texture THair1, THair2;
+	DescriptorSet DSHair;
 
 	//Model MFloor[1];
 	//std::vector<std::array<float,6>> vertices_pos_floor[1];
@@ -251,9 +266,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 97;//aumento di 2
-		DPSZs.texturesInPool = 50;//aumentato di 1
-		DPSZs.setsInPool = 53;//aumento di 1
+		DPSZs.uniformBlocksInPool = 99;//aumento di 2
+		DPSZs.texturesInPool = 52;//aumentato di 1
+		DPSZs.setsInPool = 54;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -289,10 +304,10 @@ class MeshLoader : public BaseProject {
 			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
 		});
 		
-		DSLScene.init(this, {
+		DSLHair.init(this, {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
-			{2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(BlinnMatParUniformBufferObject), 1}
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1},
 		});
 
 		DSLskyBox.init(this, {
@@ -328,11 +343,24 @@ class MeshLoader : public BaseProject {
 					sizeof(glm::vec2), UV}
 		});
 
+		VDHair.init(this, {
+			{0, sizeof(HairVertex), VK_VERTEX_INPUT_RATE_VERTEX}
+		}, {
+			{0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(HairVertex, pos),
+					sizeof(glm::vec3), POSITION},
+			{0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(HairVertex, norm),
+					sizeof(glm::vec3), NORMAL},
+			{0, 2, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(HairVertex, tan),
+					sizeof(glm::vec4), TANGENT},
+			{0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(HairVertex, UV),
+					sizeof(glm::vec2), UV}
+		});
+
 
 		// Pipelines INITIALIZATION [Shader couples]
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission, &DSLSunPar});
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn/*,&DSLSpot*/});
-		PScene.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/CarFrag.spv", {&DSLGlobal, &DSLScene});
+		PHair.init(this, &VDHair, "shaders/TanVert.spv", "shaders/WardFrag.spv", {&DSLGlobal, &DSLHair});
 		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
 		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
 
@@ -342,6 +370,7 @@ class MeshLoader : public BaseProject {
 		Msun.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 		Mmoon.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
+		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
 
 		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
@@ -350,12 +379,14 @@ class MeshLoader : public BaseProject {
 		M4.initMesh(this, &VD);*/
 
 		// Create the textures
-		TCar.init(this, "textures/CarTexture.png");
+		TCar.init(this, "textures/CarTextureVariant.png");
 		Tship.init(this, "textures/XwingColors.png");
 		Tsun.init(this, "textures/2k_sun.jpg");
 		Tmoon.init(this, "textures/moon.jfif");
 		TskyBox.init(this, "textures/starmap_g4k.jpg");
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
+		THair1.init(this, "textures/HAIR1.jpg");
+		THair2.init(this, "textures/HAIR2.jpg");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
@@ -396,7 +427,7 @@ class MeshLoader : public BaseProject {
 		// This creates a new pipeline (with the current surface), using its shaders
 		PBlinn.create();
 		PEmission.create();
-		PScene.create();
+		PHair.create();
 		PskyBox.create();
 
 		// Here you define the data set
@@ -409,6 +440,8 @@ class MeshLoader : public BaseProject {
 		DSCar.init(this, &DSLBlinn, {&TCar});
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
+		DSHair.init(this, &DSLHair, {&THair1, &THair2});
+		DSGlobalHair.init(this, &DSLGlobalHair, {});
 
 		//floor
 		//DSFloor.init(this, &DSLBlinn, {&TFloor});
@@ -424,7 +457,7 @@ class MeshLoader : public BaseProject {
 		// Cleanup pipelines
 		PBlinn.cleanup();
 		PEmission.cleanup();
-		PScene.cleanup();
+		PHair.cleanup();
 		PskyBox.cleanup();
 
 		DSGlobal.cleanup();
@@ -436,6 +469,8 @@ class MeshLoader : public BaseProject {
 		DSmoonPar.cleanup();
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
+		DSHair.cleanup();
+		DSGlobalHair.cleanup();
 		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
@@ -460,13 +495,18 @@ class MeshLoader : public BaseProject {
 		TskyBox.cleanup();
 		Tstars.cleanup();
 		MskyBox.cleanup();
+
+		THair1.cleanup();
+		THair2.cleanup();
+		MHair.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
 		DSLBlinn.cleanup();
 		DSLEmission.cleanup();
 		DSLSunPar.cleanup();
-		DSLScene.cleanup();
+		DSLHair.cleanup();
+		DSGlobalHair.cleanup();
 		DSLskyBox.cleanup();
 		DSLskyBoxPar.cleanup();
 
@@ -482,7 +522,7 @@ class MeshLoader : public BaseProject {
 		// Destroies the pipelines
 		PBlinn.destroy();
 		PEmission.destroy();
-		PScene.destroy();
+		PHair.destroy();
 		PskyBox.destroy();
 	}
 	
@@ -509,12 +549,15 @@ class MeshLoader : public BaseProject {
 		//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
 		//vkCmdDrawIndexed(commandBuffer,
 		//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
-
 		
-		MCar.bind(commandBuffer);
-		DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
-		vkCmdDrawIndexed(commandBuffer,
-			static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
+
+			//HAIR
+			PHair.bind(commandBuffer);
+			MHair.bind(commandBuffer);
+			DSGlobalHair.bind(commandBuffer, PHair, 0, currentImage);
+			DSHair.bind(commandBuffer, PHair, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MHair.indices.size()), 1, 0, 0, 0);
 
 			PEmission.bind(commandBuffer);
 			Msun.bind(commandBuffer);
@@ -528,10 +571,6 @@ class MeshLoader : public BaseProject {
 			DSmoonPar.bind(commandBuffer, PEmission, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
-
-			//POPULATE SCENE
-			PScene.bind(commandBuffer);
-			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 
 			PskyBox.bind(commandBuffer);
 			MskyBox.bind(commandBuffer);
@@ -766,7 +805,10 @@ class MeshLoader : public BaseProject {
 		uboCar.nMat = glm::transpose(glm::inverse(uboCar.mMat));
 		
 		DSCar.map(currentImage, &uboCar, 0);
+		/* HAIR POSITION ********************************************************************************************* */
 		
+
+
 		/* BLINN POSITION ******************************************************************************************** */
 		BlinnUniformBufferObject blinnUbo{};
 		BlinnMatParUniformBufferObject blinnMatParUbo{};
@@ -789,7 +831,7 @@ class MeshLoader : public BaseProject {
 		float upwardOffsetHeadLight = 0.75f;	//altezza della camera
 		float lateralOffsetHeadLight = 0.25f;
 		float lateralOffsetHeadLight2 = -0.25f;
-
+	
 
 		//SUN
 		gubo.lightDir[0] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
@@ -898,7 +940,23 @@ class MeshLoader : public BaseProject {
 		sbparubo.sinSun = sin(cTime * angTurnTimeFact);
 		DSskyBoxPar.map(currentImage, &sbparubo, 0);
     
-		
+		/******************************************************************** */
+		BlinnUniformBufferObject uboHair{};
+		GlobalUniformBufferObjectHair guboHair{};
+		guboHair.lightDir = gubo.lightDir[0];
+		guboHair.lightColor = gubo.lightColor[0];
+		guboHair.eyePos = gubo.eyePos;
+		//glm::vec3 translationVector(-0.45f, 0.75f, -0.25f);
+		//glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationVector);
+
+		//uboHair.mMat = translationMatrix * trsanslationMatrix * rotationMatrix;
+		//uboHair.mvpMat = View * uboHair.mMat;
+		//uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
+		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.5,0.5,0.5));
+		uboHair.mvpMat = View * uboHair.mMat;
+		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
+		DSHair.map(currentImage, &guboHair, 0);
+		DSHair.map(currentImage, &uboHair, 1);
 	}	
 
 	//MOVE THE CAR
@@ -995,6 +1053,7 @@ class MeshLoader : public BaseProject {
 		float forwardOffset = -0.45f;	//offset rispetto al centro dell'auto
 		float upwardOffset = 0.75f;	//altezza della camera
 		float lateralOffset = 0.25f; 
+		
 		
 		//Calcolo la posizione della camera
 		glm::vec3 CamTarget = Pos + carDirection * forwardOffset 

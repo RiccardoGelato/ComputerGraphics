@@ -2,6 +2,4 @@ cl /MD /I C:\VulkanSDK\glfw-3.3.9.bin.WIN64\include /I .\headers\ /I C:\VulkanSD
 cd shaders
 glslc CarShader.frag -o CarFrag.spv
 glslc CarShader.vert -o CarVert.spv
-glslc BlinnShader.frag -o BlinnFrag.spv
-glslc BlinnShader.vert -o BlinnVert.spv
 cd..
