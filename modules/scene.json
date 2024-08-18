@@ -6,8 +6,8 @@
         {"id": "M_strada_incrocio_3", "model": "models/ROAD_INCROCIO_A_TRE.mgcg", "format":"MGCG"},
         {"id": "M_park1", "model": "models/PARK.mgcg", "format":"MGCG"},
         {"id": "M_cube", "model": "models/Cube.obj", "format":"OBJ"},
-        {"id": "M_parcheggio", "model": "models/PARCHEGGIO.mgcg", "format":"MGCG"},
-        {"id": "M_parcheggio2", "model": "models/PARCHEGGIO2.mgcg", "format":"MGCG"},
+        {"id": "M_park2", "model": "models/PARK2.mgcg", "format":"MGCG"},
+        {"id": "M_ruota_panoramica", "model": "models/RUOTA_PANORAMICA.mgcg", "format":"MGCG"},
         {"id": "M_strada_incrocio_4", "model": "models/ROAD_INCROCIO_A_QUATTRO.mgcg", "format":"MGCG"}
     ],
     "textures": [
@@ -274,13 +274,13 @@
                        0, 0, 16, 0,
                        7.5, -15.98, 52.5, 1]
                     },
-         {"id": "parking1",   "model": "M_parcheggio",   "texture": "T_strada_dritta",
+         {"id": "parking1",   "model": "M_park2",   "texture": "T_strada_dritta",
         "transform": [ 2, 0, 0, 0,
                        0, 2, 0, 0,
                        0, 0, 2, 0,
                        7.5, -0.98, 52.5, 1]
                     },
-         {"id": "parking2",   "model": "M_parcheggio2",   "texture": "T_strada_dritta",
+         {"id": "ruota_panoramica",   "model": "M_ruota_panoramica",   "texture": "T_strada_dritta",
         "transform": [ 2, 0, 0, 0,
                        0, 2, 0, 0,
                        0, 0, 2, 0,
