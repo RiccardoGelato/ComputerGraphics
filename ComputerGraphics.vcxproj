@@ -537,6 +537,7 @@
     <None Include="headers\glm\gtx\vector_angle.inl" />
     <None Include="headers\glm\gtx\vector_query.inl" />
     <None Include="headers\glm\gtx\wrap.inl" />
+    <None Include="modules\scene.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -6,7 +6,7 @@ enum TextAlignment
 
 struct SingleText {
 	int usedLines;
-	const char *l[5];
+	const char *l[6];
 	int start;
 	int len;
 	int textLine;
@@ -123,7 +123,7 @@ struct TextMaker {
 		float PtoTsx = 2.0/800.0;
 		float PtoTsy = 2.0/600.0;
 		//todo
-		float PtoTdx[5] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 };
+		float PtoTdx[6] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 ,-0.95};
 		/*for (auto& Txt : *Texts) {
 			for (int i = 0; i < Txt.usedLines; i++) {
 				

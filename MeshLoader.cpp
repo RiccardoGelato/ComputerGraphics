@@ -87,9 +87,9 @@ const char* bdrfState[2] = { "Blinn", "Toon" };
 const char* bdrf = bdrfState[0];
 
 std::vector<SingleText> outText = {
-	{2, {"Menu", "Press 4 To Start", "", "", ""}, 0, 0, 0},
-	{1, {"Press 4 To See Commands","","", "",""}, 0, 0, 0},
-	{5, {"HeadLights: 1","BDRF: 2","Clouds: 3","P to change camera", "Press 4 To Restart"}, 0, 0, 0},
+	{2, {"Menu", "Press Space To Start", "", "", "", ""}, 0, 0, 0},
+	{1, {"Press Space To See Commands","","", "","", ""}, 0, 0, 0},
+	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3","ChangeCamera: P", "ChangeTexture: 5",  "Restart: Space"}, 0, 0, 0},
 };
 
 std::vector<SingleText> outText2 = {
@@ -325,7 +325,7 @@ class MeshLoader : public BaseProject {
 		// Descriptor pool sizes
 		DPSZs.uniformBlocksInPool = 106;//aumento di 2
 		DPSZs.texturesInPool = 150;//aumentato di 3
-		DPSZs.setsInPool = 59;//aumento di 1
+		DPSZs.setsInPool = 60;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -786,10 +786,10 @@ class MeshLoader : public BaseProject {
 		}
 
 		//CHANGING SCENE
-		if (glfwGetKey(window, GLFW_KEY_4)) {
+		if (glfwGetKey(window, GLFW_KEY_SPACE)) {
 			if (!debounce) {
 				debounce = true;
-				curDebounce = GLFW_KEY_4;
+				curDebounce = GLFW_KEY_SPACE;
 				currScene = (currScene + 1) % 3;
 				if (currScene == 0) {
 					currScene = 1;
@@ -798,17 +798,17 @@ class MeshLoader : public BaseProject {
 			}
 		}
 		else {
-			if ((curDebounce == GLFW_KEY_4) && debounce) {
+			if ((curDebounce == GLFW_KEY_SPACE) && debounce) {
 				debounce = false;
 				curDebounce = 0;
 			}
 		}
 
 		//CHANGING TEXTURE
-		if (glfwGetKey(window, GLFW_KEY_5)) {
+		if (glfwGetKey(window, GLFW_KEY_4)) {
 			if (!debounce) {
 				debounce = true;
-				curDebounce = GLFW_KEY_5;
+				curDebounce = GLFW_KEY_4;
 				carTexture = carTexture + 1;
 				if (carTexture == 3) {
 					carTexture = 0;
@@ -816,7 +816,7 @@ class MeshLoader : public BaseProject {
 			}
 		}
 		else {
-			if ((curDebounce == GLFW_KEY_5) && debounce) {
+			if ((curDebounce == GLFW_KEY_4) && debounce) {
 				debounce = false;
 				curDebounce = 0;
 			}

@@ -1,0 +1,92 @@
+﻿  MeshLoader.cpp
+D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(3039,17): warning C4018: '>=': errata corrispondenza tra signed e unsigned
+D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(3134,17): warning C4018: '>=': errata corrispondenza tra signed e unsigned
+D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(5176,45): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(5205,60): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\RIKY\ComputerGraphics\A10\headers\tiny_gltf.h(5393,49): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(349,31): warning C4099: 'VertexDescriptor': il nome del tipo che in precedenza utilizzava 'struct' ora utilizza 'class'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(202): message : vedere la dichiarazione di 'VertexDescriptor'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(351,22): warning C4099: 'Texture': il nome del tipo che in precedenza utilizzava 'struct' ora utilizza 'class'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(248): message : vedere la dichiarazione di 'Texture'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(352,23): warning C4099: 'Pipeline': il nome del tipo che in precedenza utilizzava 'struct' ora utilizza 'class'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(294): message : vedere la dichiarazione di 'Pipeline'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(353,34): warning C4099: 'DescriptorSetLayout': il nome del tipo che in precedenza utilizzava 'struct' ora utilizza 'class'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(284): message : vedere la dichiarazione di 'DescriptorSetLayout'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(354,28): warning C4099: 'DescriptorSet': il nome del tipo che in precedenza utilizzava 'struct' ora utilizza 'class'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(323): message : vedere la dichiarazione di 'DescriptorSet'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(1573,1): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(1840,16): warning C4244: '=': conversione da 'double' a 'T'. Possibile perdita di dati.
+          with
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(1841,16): warning C4244: '=': conversione da 'double' a 'T'. Possibile perdita di dati.
+          with
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2530,52): warning C4267: 'argomento': conversione da 'size_t' a '_Ty'. Possibile perdita di dati.
+          with
+          [
+              _Ty=unsigned int
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2559,151): warning C4267: 'argomento': conversione da 'size_t' a 'const unsigned long'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2571,74): warning C4267: 'argomento': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2613,31): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2627,33): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2641,31): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2655,29): warning C4267: '=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2770,36): warning C4244: 'argomento': conversione da '_Ty' a 'T'. Possibile perdita di dati.
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2769,36): warning C4244: 'argomento': conversione da '_Ty' a 'T'. Possibile perdita di dati.
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2768,36): warning C4244: 'argomento': conversione da '_Ty' a 'T'. Possibile perdita di dati.
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(2767,45): warning C4244: 'argomento': conversione da '_Ty' a 'T'. Possibile perdita di dati.
+          with
+          [
+              _Ty=double
+          ]
+          and
+          [
+              T=float
+          ]
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(3177,48): warning C4267: '=': conversione da 'size_t' a 'uint32_t'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\Starter.hpp(3305,33): warning C4267: 'inizializzazione': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(16,483): warning C4305: 'inizializzazione': troncamento da 'double' a 'const float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(114,1): warning C4267: '+=': conversione da 'size_t' a 'int'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(123,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(124,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(126,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\modules\TextMaker.hpp(134,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(40,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(48,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(56,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(61,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(700,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(922,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(994,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(995,1): warning C4305: '=': troncamento da 'double' a 'float'
+LINK : warning LNK4098: la libreria predefinita 'MSVCRT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
+  ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe
