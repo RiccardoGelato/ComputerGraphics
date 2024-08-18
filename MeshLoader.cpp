@@ -140,7 +140,7 @@ class MeshLoader : public BaseProject {
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
 		SceneProject scene;
-		ColliderQuad colObstacle[4];
+		ColliderQuad colObstacle[5];
 
 	//CAMERA PARAMETERS
 		float Ar;	// Current aspect ratio
@@ -821,7 +821,8 @@ class MeshLoader : public BaseProject {
 		if(CollisionQuad(col, colObstacle[0]) || 
 		   CollisionQuad(col, colObstacle[1]) || 
 		   CollisionQuad(col, colObstacle[2]) || 
-		   CollisionQuad(col, colObstacle[3])) 
+		   CollisionQuad(col, colObstacle[3]) ||
+		   CollisionQuad(col, colObstacle[4]))
 		{
 			Pos -= Vel * deltaT;
 			Vel = glm::vec3(0.0f);
@@ -1272,6 +1273,10 @@ class MeshLoader : public BaseProject {
 		colObstacle[3].vertice3 = glm::vec3(-52, 0, 55);
 		colObstacle[3].vertice4 = glm::vec3(-52, 0, 65);
 
+		colObstacle[4].vertice1 = glm::vec3(-26, 0, -8);
+		colObstacle[4].vertice2 = glm::vec3(-26, 0, 23);
+		colObstacle[4].vertice3 = glm::vec3(-49, 0, -8);
+		colObstacle[4].vertice4 = glm::vec3(-49, 0, 23);
 
 	}
 	ColliderQuad updateCollider(){
