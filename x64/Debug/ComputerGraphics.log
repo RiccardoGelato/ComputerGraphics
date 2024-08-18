@@ -84,9 +84,9 @@ D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(40,13): warning 
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(48,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(56,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
 D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(61,13): warning C4244: 'inizializzazione': conversione da 'double' a 'float'. Possibile perdita di dati.
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(700,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(922,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(994,1): warning C4305: '=': troncamento da 'double' a 'float'
-D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(995,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(702,1): warning C4305: 'inizializzazione': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(924,1): warning C4244: '-=': conversione da 'double' a 'float'. Possibile perdita di dati.
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(996,1): warning C4305: '=': troncamento da 'double' a 'float'
+D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\MeshLoader.cpp(997,1): warning C4305: '=': troncamento da 'double' a 'float'
 LINK : warning LNK4098: la libreria predefinita 'MSVCRT' è in conflitto con l'utilizzo di altre librerie; usare /NODEFAULTLIB:libreria
   ComputerGraphics.vcxproj -> D:\Users\D4RKR\Documents\GitHub\ComputerGraphics\x64\Debug\ComputerGraphics.exe

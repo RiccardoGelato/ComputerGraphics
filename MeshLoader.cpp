@@ -297,11 +297,6 @@ class MeshLoader : public BaseProject {
 	Texture TCoin;
 	DescriptorSet DSCoin;
 
-	//Model MFloor[1];
-	//std::vector<std::array<float,6>> vertices_pos_floor[1];
-	//DescriptorSet DSFloor;
-	//Texture TFloor;
-
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
@@ -432,7 +427,7 @@ class MeshLoader : public BaseProject {
 		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
 		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
 
-		std::vector<std::array<float, 6>> vertices_pos;
+		/*std::vector<std::array<float, 6>> vertices_pos;
 		MakeCylinder(1.0f, 2.0f, 32, vertices_pos, MCoin.indices);
 
 		int mainStride = VDBlinn.Bindings[0].stride;
@@ -452,13 +447,9 @@ class MeshLoader : public BaseProject {
 			//printVec3("V",vertices_pos[i]);			
 		}
 
-		MCoin.initMesh(this, &VDBlinn);
+		MCoin.initMesh(this, &VDBlinn);*/
 
-		/*// Creates a mesh with direct enumeration of vertices and indices
-		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
-					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
-		M4.indices = {0, 1, 2,    1, 3, 2};
-		M4.initMesh(this, &VD);*/
+		MCoin.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
 
 		// Create the textures
 		TCar.init(this, "textures/CarTexture.png");
@@ -472,40 +463,16 @@ class MeshLoader : public BaseProject {
 		THair1.init(this, "textures/HAIR1.jpg");
 		THair2.init(this, "textures/HAIR2.jpg");
 		THead.init(this, "textures/HEAD.png");
-		TCoin.init(this, "textures/COIN_TEXTURE.png");
+		TCoin.init(this, "textures/Menu_texture.jfif");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
 		// updates the text
 		txt.init(this, &outText);
-		//txt2.init(this, &outText2);
 
 
 		//INITIALIZE THE COLLIDERS
 		InitializeColliders();
-
-		//CREATE THE MODEL FOR THE FLOOR
-		/*
-		TFloor.init(this, "textures/Textures_Food.png");
-		MakeFloor(2.0, vertices_pos_floor[0], MFloor[0].indices);
-
-		MFloor[0].vertices = std::vector<unsigned char>(vertices_pos_floor[0].size()*sizeof(BlinnVertex), 0);
-
-		for(int i = 0; i < vertices_pos_floor[0].size(); i++) {
-			BlinnVertex *V_vertex = (BlinnVertex *)(&(MFloor[0].vertices[i]));
-
-			V_vertex->pos.x = vertices_pos_floor[0][i][0];
-			V_vertex->pos.y = vertices_pos_floor[0][i][1];
-			V_vertex->pos.z = vertices_pos_floor[0][i][2];
-			V_vertex->UV.x = vertices_pos_floor[0][i][0];
-			V_vertex->UV.y = vertices_pos_floor[0][i][2];
-			V_vertex->norm.x = vertices_pos_floor[0][i][3];
-			V_vertex->norm.y = vertices_pos_floor[0][i][4];
-			V_vertex->norm.z = vertices_pos_floor[0][i][5];
-		}
-
-		MFloor[0].initMesh(this, &VDBlinn);
-		*/
 		
 	}
 	
@@ -530,13 +497,10 @@ class MeshLoader : public BaseProject {
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
 		DSCoin.init(this, &DSLBlinn, { &TCoin,&TCoin ,&TCoin });
 
-		//floor
-		//DSFloor.init(this, &DSLBlinn, {&TFloor});
 		
 		//scene pipelines and descriptor sets
 		scene.pipelinesAndDescriptorSetsInit(DSLBlinn);
 		txt.pipelinesAndDescriptorSetsInit();
-		//txt2.pipelinesAndDescriptorSetsInit();
 		
 	}
 
@@ -559,12 +523,10 @@ class MeshLoader : public BaseProject {
 		DSHair.cleanup();
 		DSHead.cleanup();
 		DSCoin.cleanup();
-		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
 		txt.pipelinesAndDescriptorSetsCleanup();
-		//txt2.pipelinesAndDescriptorSetsCleanup();
 	}
 
 	void localCleanup() {
@@ -608,11 +570,6 @@ class MeshLoader : public BaseProject {
 		//SCENE CLEANUP
 		scene.localCleanup();
 		txt.localCleanup();
-		//txt2.localCleanup();
-
-		//FLOOR
-		//TFloor.cleanup();
-		//MFloor[0].cleanup();
 		
 		// Destroies the pipelines
 		PBlinn.destroy();
@@ -650,13 +607,6 @@ class MeshLoader : public BaseProject {
 
 			//POPULATE SCENE
 			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
-
-			//FLOOR
-			//MFloor[0].bind(commandBuffer);
-			//DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
-			//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
-			//vkCmdDrawIndexed(commandBuffer,
-			//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
 		
 			//HAIR
 			PHair.bind(commandBuffer);
@@ -691,7 +641,6 @@ class MeshLoader : public BaseProject {
 		}
 
 		txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
-		//txt2.populateCommandBuffer(commandBuffer, currentImage, currScene + 1-lightOn);
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -726,13 +675,7 @@ class MeshLoader : public BaseProject {
 				debounce = true;
 				curDebounce = GLFW_KEY_P;
 				cameraType = (cameraType + 1) % 3;
- 
-				/*if (cameraType == 0) {
-					cameraType = 1;
-				}
-				else{
-					cameraType = 0;
-				}*/
+
 			}
 		} else {
 			if((curDebounce == GLFW_KEY_P) && debounce) {
@@ -828,8 +771,6 @@ class MeshLoader : public BaseProject {
 		glm::vec3 r = glm::vec3(0.0f);
 		bool fire = false;
 		getSixAxis(deltaT, m, r, fire);
-		//fisso deltaT per evitare cambi di prestazione su diversi computer/grandezze dis schermi
-		//deltaT = 0.02f;
 		if (currScene == 2) {
 			deltaT = 0;
 		}
@@ -1038,23 +979,6 @@ class MeshLoader : public BaseProject {
 			i++;
         }
 
-		/* FLOOR POSITION ******************************************************************************************** */
-		/*
-		BlinnUniformBufferObject uboFloor{};
-		BlinnMatParUniformBufferObject uboFloorMatPar{};
-
-		uboFloor.mMat = glm::mat4( 54, 0, 0, 0,
-								   0, 54, 0, 0,
-								   0, 0, 54, 0,
-								   -15, -53.99, 30, 1);
-		uboFloor.mvpMat = View * uboFloor.mMat;
-		uboFloor.nMat = glm::transpose(glm::inverse(uboFloor.mMat));
-
-		uboFloorMatPar.Power = 200.0;
-
-		DSFloor.map(currentImage, &uboFloor, 0);
-		DSFloor.map(currentImage, &uboFloorMatPar, 2);
-		*/
 		//SKYBOX
 
 		skyBoxUniformBufferObject sbubo{};
@@ -1119,7 +1043,7 @@ class MeshLoader : public BaseProject {
 		BlinnUniformBufferObject uboCoin{};
 		BlinnMatParUniformBufferObject coinMatParUbo{};
 
-		uboCoin.mMat = glm::scale(glm::mat4(1.0), glm::vec3(50000, 50000, 50000));
+		uboCoin.mMat = glm::scale(glm::mat4(1.0), glm::vec3(500000, 1, 500000));
 		uboCoin.mvpMat = View * uboCoin.mMat;
 		uboCoin.nMat = glm::transpose(glm::inverse(uboCoin.mMat));
 
