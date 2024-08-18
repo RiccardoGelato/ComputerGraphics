@@ -29,6 +29,52 @@ struct ColliderQuad{
 };
 
 
+
+void MakeCylinder(float radius, float height, int slices, std::vector<std::array<float, 6>>& vertices, std::vector<uint32_t>& indices) {
+
+	vertices.resize(4 * slices + 2);
+	indices.resize(3 * 4 * slices);
+	vertices[4 * slices] = { 0.0f,height / 2.0f,0.0f, 0, 1, 0 };
+	vertices[4 * slices + 1] = { 0.0f,-height / 2.0f,0.0f, 0, -1, 0 };
+	for (int i = 0; i < slices; i++) {
+		float ang = 2 * M_PI * (float)i / (float)slices;
+		vertices[i] = { radius * cos(ang), height / 2.0f, radius * sin(ang), 0, 1, 0 };
+		indices[3 * i] = 4 * slices;
+		indices[3 * i + 2] = i;
+		indices[3 * i + 1] = (i + 1) % slices;
+	}
+
+	for (int i = 0; i < slices; i++) {
+		float ang = 2 * M_PI * (float)i / (float)slices;
+		vertices[slices + i] = { radius * cos(ang), -height / 2.0f, radius * sin(ang), 0, -1, 0 };
+		indices[3 * slices + 3 * i] = 4 * slices + 1;
+		indices[3 * slices + 3 * i + 1] = slices + i;
+		indices[3 * slices + 3 * i + 2] = slices + (i + 1) % slices;
+	}
+
+	for (int i = 0; i < slices; i++) {
+		float ang = 2 * M_PI * (float)i / (float)slices;
+		vertices[2 * slices + i] = { radius * cos(ang), height / 2.0f, radius * sin(ang), cos(ang), 0, sin(ang) };
+	}
+
+	for (int i = 0; i < slices; i++) {
+		float ang = 2 * M_PI * (float)i / (float)slices;
+		vertices[3 * slices + i] = { radius * cos(ang), -height / 2.0f, radius * sin(ang), cos(ang), 0, sin(ang) };
+	}
+
+	for (int i = 0; i < slices; i++) {
+
+		indices[2 * 3 * slices + 2 * 3 * i] = 2 * slices + i;
+		indices[2 * 3 * slices + 2 * 3 * i + 1] = 2 * slices + (i + 1) % slices;
+		indices[2 * 3 * slices + 2 * 3 * i + 2] = 2 * slices + slices + i;
+		indices[2 * 3 * slices + 2 * 3 * i + 3] = 2 * slices + slices + i;
+		indices[2 * 3 * slices + 2 * 3 * i + 4] = 2 * slices + (i + 1) % slices;
+		indices[2 * 3 * slices + 2 * 3 * i + 5] = 2 * slices + slices + (i + 1) % slices;
+
+	}
+}
+
+
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
 #define NLIGHTS 4
@@ -133,6 +179,7 @@ struct HairVertex {
 class MeshLoader : public BaseProject {
 	protected:
 
+
 	//SCENE
 		int currScene = 0;
 
@@ -140,7 +187,7 @@ class MeshLoader : public BaseProject {
 		bool debounce = false;	//avoid multiple key press
 		int curDebounce = 0;
 		SceneProject scene;
-		ColliderQuad colObstacle[4];
+		ColliderQuad colObstacle[5];
 
 	//CAMERA PARAMETERS
 		float Ar;	// Current aspect ratio
@@ -245,6 +292,10 @@ class MeshLoader : public BaseProject {
 	Model MHead;
 	Texture THead;
 	DescriptorSet DSHead;
+
+	Model MCoin;
+	Texture TCoin;
+	DescriptorSet DSCoin;
 
 	//Model MFloor[1];
 	//std::vector<std::array<float,6>> vertices_pos_floor[1];
@@ -380,6 +431,29 @@ class MeshLoader : public BaseProject {
 		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
 		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
 		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
+
+		std::vector<std::array<float, 6>> vertices_pos;
+		MakeCylinder(1.0f, 2.0f, 32, vertices_pos, MCoin.indices);
+
+		int mainStride = VDBlinn.Bindings[0].stride;
+
+		MCoin.vertices = std::vector<unsigned char>(vertices_pos.size() * sizeof(BlinnVertex), 0);
+		for (int i = 0; i < vertices_pos.size(); i++) {
+			BlinnVertex* V_vertex = (BlinnVertex*)(&(MCoin.vertices[i * mainStride]));
+			V_vertex->pos.x = vertices_pos[i][0];
+			V_vertex->pos.y = vertices_pos[i][1];
+			V_vertex->pos.z = vertices_pos[i][2];
+			V_vertex->UV.x = vertices_pos[i][0];
+			V_vertex->UV.y = vertices_pos[i][2];
+			V_vertex->norm.x = vertices_pos[i][3];
+			V_vertex->norm.y = vertices_pos[i][4];
+			V_vertex->norm.z = vertices_pos[i][5];
+
+			//printVec3("V",vertices_pos[i]);			
+		}
+
+		MCoin.initMesh(this, &VDBlinn);
+
 		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
 					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
@@ -398,6 +472,7 @@ class MeshLoader : public BaseProject {
 		THair1.init(this, "textures/HAIR1.jpg");
 		THair2.init(this, "textures/HAIR2.jpg");
 		THead.init(this, "textures/HEAD.png");
+		TCoin.init(this, "textures/COIN_TEXTURE.png");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
@@ -453,6 +528,7 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
+		DSCoin.init(this, &DSLBlinn, { &TCoin,&TCoin ,&TCoin });
 
 		//floor
 		//DSFloor.init(this, &DSLBlinn, {&TFloor});
@@ -482,6 +558,7 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.cleanup();
 		DSHair.cleanup();
 		DSHead.cleanup();
+		DSCoin.cleanup();
 		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
@@ -515,6 +592,9 @@ class MeshLoader : public BaseProject {
 
 		THead.cleanup();
 		MHead.cleanup();
+
+		TCoin.cleanup();
+		MCoin.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
@@ -550,8 +630,6 @@ class MeshLoader : public BaseProject {
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
 
-			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
-
 			//car
 			MCar.bind(commandBuffer);
 			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
@@ -563,6 +641,12 @@ class MeshLoader : public BaseProject {
 			DSHead.bind(commandBuffer, PBlinn, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MHead.indices.size()), 1, 0, 0, 0);
+
+			//coin
+			MCoin.bind(commandBuffer);
+			DSCoin.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MCoin.indices.size()), 1, 0, 0, 0);
 
 			//POPULATE SCENE
 			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
@@ -781,8 +865,6 @@ class MeshLoader : public BaseProject {
 
 		glm::mat4 M = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 160.0f);
 		M[1][1] *= -1;
-
-		glm::mat4 Mv = View;
 		
 		
 
@@ -821,7 +903,8 @@ class MeshLoader : public BaseProject {
 		if(CollisionQuad(col, colObstacle[0]) || 
 		   CollisionQuad(col, colObstacle[1]) || 
 		   CollisionQuad(col, colObstacle[2]) || 
-		   CollisionQuad(col, colObstacle[3])) 
+		   CollisionQuad(col, colObstacle[3]) ||
+		   CollisionQuad(col, colObstacle[4]))
 		{
 			Pos -= Vel * deltaT;
 			Vel = glm::vec3(0.0f);
@@ -975,7 +1058,9 @@ class MeshLoader : public BaseProject {
 		//SKYBOX
 
 		skyBoxUniformBufferObject sbubo{};
-		sbubo.mvpMat = M * glm::mat4(glm::mat3(Mv));
+		
+		sbubo.mvpMat = M * glm::mat4(glm::mat3(View));
+		//sbubo.mvpMat = glm::scale(M, glm::vec3(-1, 1, 1)) * glm::mat4(glm::mat3(View));
 		DSskyBox.map(currentImage, &sbubo, 0);
 
 		SkyMatParUniformBufferObject sbparubo{};
@@ -1029,6 +1114,23 @@ class MeshLoader : public BaseProject {
 
 		DSHead.map(currentImage, &uboHead, 0);
 		DSHead.map(currentImage, &headMatParUbo, 2);
+
+
+		BlinnUniformBufferObject uboCoin{};
+		BlinnMatParUniformBufferObject coinMatParUbo{};
+
+		uboCoin.mMat = glm::scale(glm::mat4(1.0), glm::vec3(50000, 50000, 50000));
+		uboCoin.mvpMat = View * uboCoin.mMat;
+		uboCoin.nMat = glm::transpose(glm::inverse(uboCoin.mMat));
+
+		coinMatParUbo.Power = 200.0;
+		coinMatParUbo.isCar = 0.0;
+		coinMatParUbo.carTexture = 0.0;
+
+		DSHead.map(currentImage, &coinMatParUbo, 0);
+		DSHead.map(currentImage, &coinMatParUbo, 2);
+
+
 	}	
 
 	//MOVE THE CAR
@@ -1272,6 +1374,10 @@ class MeshLoader : public BaseProject {
 		colObstacle[3].vertice3 = glm::vec3(-52, 0, 55);
 		colObstacle[3].vertice4 = glm::vec3(-52, 0, 65);
 
+		colObstacle[4].vertice1 = glm::vec3(-26, 0, -8);
+		colObstacle[4].vertice2 = glm::vec3(-26, 0, 23);
+		colObstacle[4].vertice3 = glm::vec3(-49, 0, -8);
+		colObstacle[4].vertice4 = glm::vec3(-49, 0, 23);
 
 	}
 	ColliderQuad updateCollider(){
