@@ -179,6 +179,12 @@ class MeshLoader : public BaseProject {
 		const float FRICTION = 5.0f;
 		const float ROT_SPEED_CAR = glm::radians(120.0f) * 10.0f;
 
+	//HAIR MOVEMENT PARAMETERS
+		const float ROT_SPEED_HAIR = glm::radians(15.0f);
+		const float MAX_HAIR_ROTATION = glm::radians(90.0f);
+		float hairRotation = 0.0f;
+		float directionHairRot = 1.0f;
+
 	//HEADLIGHTS
 		float lightOn;
 	//BDRF
@@ -236,6 +242,10 @@ class MeshLoader : public BaseProject {
 	Texture THair1, THair2;
 	DescriptorSet DSHair;
 
+	Model MHead;
+	Texture THead;
+	DescriptorSet DSHead;
+
 	//Model MFloor[1];
 	//std::vector<std::array<float,6>> vertices_pos_floor[1];
 	//DescriptorSet DSFloor;
@@ -262,9 +272,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 104;//aumento di 2
-		DPSZs.texturesInPool = 56;//aumentato di 1
-		DPSZs.setsInPool = 57;//aumento di 1
+		DPSZs.uniformBlocksInPool = 106;//aumento di 2
+		DPSZs.texturesInPool = 150;//aumentato di 3
+		DPSZs.setsInPool = 59;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -369,7 +379,7 @@ class MeshLoader : public BaseProject {
 		Mmoon.init(this, &VDEmission, "models/Sphere.obj", OBJ);
 		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
 		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
-
+		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
 		/*// Creates a mesh with direct enumeration of vertices and indices
 		M4.vertices = {{{-6,-2,-6}, {0.0f,0.0f}}, {{-6,-2,6}, {0.0f,1.0f}},
 					    {{6,-2,-6}, {1.0f,0.0f}}, {{ 6,-2,6}, {1.0f,1.0f}}};
@@ -387,6 +397,7 @@ class MeshLoader : public BaseProject {
 		Tstars.init(this, "textures/2k_earth_clouds.jpg");
 		THair1.init(this, "textures/HAIR1.jpg");
 		THair2.init(this, "textures/HAIR2.jpg");
+		THead.init(this, "textures/HEAD.png");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
@@ -441,6 +452,7 @@ class MeshLoader : public BaseProject {
 		DSskyBox.init(this, &DSLskyBox, { &TskyBox, &Tstars });
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
+		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
 
 		//floor
 		//DSFloor.init(this, &DSLBlinn, {&TFloor});
@@ -469,6 +481,7 @@ class MeshLoader : public BaseProject {
 		DSskyBox.cleanup();
 		DSskyBoxPar.cleanup();
 		DSHair.cleanup();
+		DSHead.cleanup();
 		//DSFloor.cleanup();
 		
 		//SCENE CLEANUP
@@ -499,6 +512,9 @@ class MeshLoader : public BaseProject {
 		THair1.cleanup();
 		THair2.cleanup();
 		MHair.cleanup();
+
+		THead.cleanup();
+		MHead.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
@@ -536,22 +552,29 @@ class MeshLoader : public BaseProject {
 
 			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 
+			//car
 			MCar.bind(commandBuffer);
 			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
-		//POPULATE SCENE
-		scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
-		//FLOOR
-		//MFloor[0].bind(commandBuffer);
-		//DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
-		//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
-		//vkCmdDrawIndexed(commandBuffer,
-		//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
-		
 
+			//head
+			MHead.bind(commandBuffer);
+			DSHead.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MHead.indices.size()), 1, 0, 0, 0);
+
+			//POPULATE SCENE
+			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+
+			//FLOOR
+			//MFloor[0].bind(commandBuffer);
+			//DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);
+			//DSFloor.bind(commandBuffer, PBlinn, 1, currentImage);
+			//vkCmdDrawIndexed(commandBuffer,
+			//	static_cast<uint32_t>(MFloor[0].indices.size()), 1, 0, 0, 0);
+		
 			//HAIR
-			
 			PHair.bind(commandBuffer);
 			MHair.bind(commandBuffer);
 			DSGlobal.bind(commandBuffer, PHair, 0, currentImage);
@@ -559,6 +582,7 @@ class MeshLoader : public BaseProject {
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MHair.indices.size()), 1, 0, 0, 0);
 
+			//sun
 			PEmission.bind(commandBuffer);
 			Msun.bind(commandBuffer);
 			DSsun.bind(commandBuffer, PEmission, 0, currentImage);
@@ -566,12 +590,14 @@ class MeshLoader : public BaseProject {
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(Msun.indices.size()), 1, 0, 0, 0);
 
+			//moon
 			Mmoon.bind(commandBuffer);
 			DSmoon.bind(commandBuffer, PEmission, 0, currentImage);
 			DSmoonPar.bind(commandBuffer, PEmission, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(Mmoon.indices.size()), 1, 0, 0, 0);
 
+			//skyBox
 			PskyBox.bind(commandBuffer);
 			MskyBox.bind(commandBuffer);
 			DSskyBox.bind(commandBuffer, PskyBox, 0, currentImage);
@@ -589,6 +615,7 @@ class MeshLoader : public BaseProject {
 		const float turnTime = 72.0f;
 		const float angTurnTimeFact = 2.0f * M_PI / turnTime;
 		static float cTime = 0.0;
+
 		//CONSTANT MOVEMENT PARAMETERS
 		const float ROT_SPEED = glm::radians(120.0f);
 		const float MOVE_SPEED = 2.0f;
@@ -824,9 +851,6 @@ class MeshLoader : public BaseProject {
 		uboCar.nMat = glm::transpose(glm::inverse(uboCar.mMat));
 		
 		DSCar.map(currentImage, &uboCar, 0);
-		/* HAIR POSITION ********************************************************************************************* */
-		
-
 
 		/* BLINN POSITION ******************************************************************************************** */
 		BlinnUniformBufferObject blinnUbo{};
@@ -960,18 +984,51 @@ class MeshLoader : public BaseProject {
 		sbparubo.sinSun = sin(cTime * angTurnTimeFact);
 		DSskyBoxPar.map(currentImage, &sbparubo, 0);
     
-		/******************************************************************** */
+		//* HAIR - HEAD POSITION ********************************************************************************************* */
 		BlinnUniformBufferObject uboHair{};
-		//glm::vec3 translationVector(-0.45f, 0.75f, -0.25f);
-		//glm::mat4 translationMatrix = glm::translate(glm::mat4(1.0f), translationVector);
+		BlinnUniformBufferObject uboHead{};
+		BlinnMatParUniformBufferObject headMatParUbo{};
 
-		//uboHair.mMat = translationMatrix * trsanslationMatrix * rotationMatrix;
-		//uboHair.mvpMat = View * uboHair.mMat;
-		//uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
-		uboHair.mMat = glm::scale(glm::mat4(1),glm::vec3(0.5,0.5,0.5));
+		float forwardOffset = -0.45f;	//offset rispetto al centro dell'auto
+		float upwardOffset = 0.75f;	//altezza della camera
+		float lateralOffset = -0.25f; 
+
+		//rotation of the hair so that the head look at the beautiful view
+		hairRotation += directionHairRot * ROT_SPEED_HAIR * deltaT;
+
+		//std::cout << "hair rotation: "<< hairRotation << std::endl;
+
+		if(hairRotation > MAX_HAIR_ROTATION || hairRotation < -MAX_HAIR_ROTATION) {
+			directionHairRot *= -1.0f;
+		}
+
+		//translation based on the car position
+		glm::vec3 passengerPos = Pos + carDirection * forwardOffset 
+								  + glm::vec3(0, upwardOffset, 0) 
+								  + glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffset;
+
+		//apply rotation of the car
+		glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
+		//apply rotation of the hair that moves + position of the head
+		glm::mat4 passengerMat = glm::translate(glm::mat4(1), passengerPos) * rotationMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));;
+
+
+		uboHair.mMat = glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
 		uboHair.mvpMat = View * uboHair.mMat;
 		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
+
 		DSHair.map(currentImage, &uboHair, 0);
+
+		uboHead.mMat = glm::scale(glm::translate(passengerMat, glm::vec3(0,-0.2,0)), glm::vec3(0.005,0.005,0.005));;
+		uboHead.mvpMat = View * uboHead.mMat;
+		uboHead.nMat = glm::transpose(glm::inverse(uboHead.mMat));
+
+		headMatParUbo.Power = 200.0;
+		headMatParUbo.isCar = 0.0;
+		headMatParUbo.carTexture = 0.0;
+
+		DSHead.map(currentImage, &uboHead, 0);
+		DSHead.map(currentImage, &headMatParUbo, 2);
 	}	
 
 	//MOVE THE CAR
