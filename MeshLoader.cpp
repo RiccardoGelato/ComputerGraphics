@@ -1059,7 +1059,21 @@ class MeshLoader : public BaseProject {
 
 		skyBoxUniformBufferObject sbubo{};
 		
-		sbubo.mvpMat = M * glm::mat4(glm::mat3(View));
+		//aggiusto la rotazione della skybox basandomi sulla rotazione della camera
+		//camYaw += r.y * ROT_SPEED_CAMERA * deltaT;
+		//camPitch += r.x * ROT_SPEED_CAMERA * deltaT;
+		//camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f));
+
+		//glm::mat4 rotationMatSky = glm::rotate(glm::mat4(1.0f), -camYaw, glm::vec3(0, 1, 0));
+		glm::vec3 direction(View[0][2], View[1][2], View[2][2]);
+
+		// calcolo lo yaw della camera
+		float yawAngle = atan2(direction.x, direction.z);
+		glm::mat4 reverseYawRotation = glm::rotate(glm::mat4(1.0f), - 2 * yawAngle, glm::vec3(0, 1, 0));
+
+		//cambio la direzione dello yaw della camera e lo metto insieme alla rotazione della camera
+		sbubo.mvpMat = M * reverseYawRotation * glm::mat4(glm::mat3(View))  ;
+		
 		//sbubo.mvpMat = glm::scale(M, glm::vec3(-1, 1, 1)) * glm::mat4(glm::mat3(View));
 		DSskyBox.map(currentImage, &sbubo, 0);
 
