@@ -1130,6 +1130,7 @@ class MeshLoader : public BaseProject {
 		DSHead.map(currentImage, &headMatParUbo, 2);
 
 
+		//TEST COIN
 		BlinnUniformBufferObject uboCoin{};
 		BlinnMatParUniformBufferObject coinMatParUbo{};
 
@@ -1141,8 +1142,8 @@ class MeshLoader : public BaseProject {
 		coinMatParUbo.isCar = 0.0;
 		coinMatParUbo.carTexture = 0.0;
 
-		DSHead.map(currentImage, &coinMatParUbo, 0);
-		DSHead.map(currentImage, &coinMatParUbo, 2);
+		DSCoin.map(currentImage, &uboCoin, 0);
+		DSCoin.map(currentImage, &coinMatParUbo, 2);
 
 
 	}	
