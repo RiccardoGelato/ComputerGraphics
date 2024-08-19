@@ -1,5 +1,6 @@
 // This has been adapted from the Vulkan tutorial
 #define GLM_ENABLE_EXPERIMENTAL
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define NSHIP 16
 #include "Starter.hpp"
 #include "modules/Scene.hpp"
@@ -87,25 +88,9 @@ const char* bdrfState[2] = { "Blinn", "Toon" };
 const char* bdrf = bdrfState[0];
 
 std::vector<SingleText> outText = {
-	{2, {"Menu", "Press Space To Start", "", "", "", ""}, 0, 0, 0},
-	{1, {"Press Space To See Commands","","", "","", ""}, 0, 0, 0},
-	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3","ChangeCamera: P", "ChangeTexture: 5",  "Restart: Space"}, 0, 0, 0},
-};
-
-std::vector<SingleText> outText2 = {
-	{1, {"","","", ""}, 0, 0, 0},
-	{1, {"HeadLights(1): ON", "", ""}, 0, 0, 0},
-	{1, {"HeadLights(1): OFF","","", ""}, 0, 0, 0},
-};
-
-std::vector<SingleText> outText3 = {
-	{1, {"BDRF(2): Blinn", "", ""}, 0, 0, 1},
-	{1, {"BDRF(2): Toon","","", ""}, 0, 0, 1},
-};
-
-std::vector<SingleText> outText4 = {
-	{1, {"Clouds(3): ON", "", ""}, 0, 0, 2},
-	{1, {"Clouds(3): OFF","","", ""}, 0, 0, 2},
+	{2, {"Press Space To Start", "", "", "", "", ""}, 0, 0, 0},
+	{1, {"Press Space To See Commands","","", "","", ""}, 0, 0, 1},
+	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3","ChangeCamera: P", "ChangeTexture: 5",  "Restart: Space"}, 0, 0, 2},
 };
 
 struct BlinnUniformBufferObject {
@@ -242,6 +227,8 @@ class MeshLoader : public BaseProject {
 		float gamePaused = 0;
 	//CarTexture
 		float carTexture = 0;
+	//Coins
+		int coinTaken = 0;
 			
 	//MATRICES
 		glm::mat4 View;
@@ -253,8 +240,9 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLEmission;
 	DescriptorSetLayout DSLSunPar;
 	DescriptorSetLayout DSLskyBox;	// For skyBox
-	DescriptorSetLayout DSLskyBoxPar;
-	DescriptorSetLayout DSLHair;	// For skyBox parameters
+	DescriptorSetLayout DSLskyBoxPar; // For skyBox parameters
+	DescriptorSetLayout DSLHair;	
+	DescriptorSetLayout DSLUI;
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
@@ -266,6 +254,7 @@ class MeshLoader : public BaseProject {
 	Pipeline PEmission;
 	Pipeline PHair;
 	Pipeline PskyBox;
+	Pipeline PUI;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
@@ -297,6 +286,10 @@ class MeshLoader : public BaseProject {
 	Texture TCoin;
 	DescriptorSet DSCoin;
 
+	Model MMenu;
+	Texture TMenu;
+	DescriptorSet DSMenu;
+
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
@@ -318,9 +311,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 108;//aumento di 2
-		DPSZs.texturesInPool = 153;//aumentato di 3
-		DPSZs.setsInPool = 60;//aumento di 1
+		DPSZs.uniformBlocksInPool = 110;//aumento di 2
+		DPSZs.texturesInPool = 154;//aumentato di 3
+		DPSZs.setsInPool = 61;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -374,6 +367,11 @@ class MeshLoader : public BaseProject {
 			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(SkyMatParUniformBufferObject), 1},
 		});
 
+		DSLUI.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(BlinnUniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+			});
+
 
 		// Vertex descriptors INITIALIZATION
 		VDBlinn.init(this, {
@@ -417,6 +415,7 @@ class MeshLoader : public BaseProject {
 		PHair.init(this, &VDHair, "shaders/TanVert.spv", "shaders/WardFrag.spv", {&DSLGlobal, &DSLHair});
 		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
 		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
+		PUI.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/UIFrag.spv", { &DSLGlobal, &DSLUI });
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
@@ -449,8 +448,9 @@ class MeshLoader : public BaseProject {
 
 		MCoin.initMesh(this, &VDBlinn);*/
 
-		MCoin.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
-
+		MCoin.init(this, &VDBlinn, "models/COIN.mgcg", MGCG);
+		MMenu.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
+		
 		// Create the textures
 		TCar.init(this, "textures/CarTexture.png");
 		TCar2.init(this, "textures/CarTextureVariant.png");
@@ -463,7 +463,8 @@ class MeshLoader : public BaseProject {
 		THair1.init(this, "textures/HAIR1.jpg");
 		THair2.init(this, "textures/HAIR2.jpg");
 		THead.init(this, "textures/HEAD.png");
-		TCoin.init(this, "textures/Menu_texture.jfif");
+		TCoin.init(this, "textures/COIN_TEXTURE.png");
+		TMenu.init(this, "textures/Menu_texture.jfif");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
@@ -482,6 +483,7 @@ class MeshLoader : public BaseProject {
 		PEmission.create();
 		PHair.create();
 		PskyBox.create();
+		PUI.create();
 
 		// Here you define the data set
 		DSsun.init(this, &DSLEmission, { &Tsun });
@@ -496,6 +498,7 @@ class MeshLoader : public BaseProject {
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
 		DSCoin.init(this, &DSLBlinn, { &TCoin,&TCoin ,&TCoin });
+		DSMenu.init(this, &DSLUI, { &TMenu});
 
 		
 		//scene pipelines and descriptor sets
@@ -510,6 +513,7 @@ class MeshLoader : public BaseProject {
 		PEmission.cleanup();
 		PHair.cleanup();
 		PskyBox.cleanup();
+		PUI.cleanup();
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
@@ -523,6 +527,7 @@ class MeshLoader : public BaseProject {
 		DSHair.cleanup();
 		DSHead.cleanup();
 		DSCoin.cleanup();
+		DSMenu.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -557,6 +562,9 @@ class MeshLoader : public BaseProject {
 
 		TCoin.cleanup();
 		MCoin.cleanup();
+
+		TMenu.cleanup();
+		MMenu.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
@@ -566,6 +574,7 @@ class MeshLoader : public BaseProject {
 		DSLHair.cleanup();
 		DSLskyBox.cleanup();
 		DSLskyBoxPar.cleanup();
+		DSLUI.cleanup();
 
 		//SCENE CLEANUP
 		scene.localCleanup();
@@ -580,33 +589,6 @@ class MeshLoader : public BaseProject {
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 		if (currScene != 0) {
-			PBlinn.bind(commandBuffer);
-			Mship.bind(commandBuffer);
-			DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
-			DSship.bind(commandBuffer, PBlinn, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
-
-			//car
-			MCar.bind(commandBuffer);
-			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
-
-			//head
-			MHead.bind(commandBuffer);
-			DSHead.bind(commandBuffer, PBlinn, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MHead.indices.size()), 1, 0, 0, 0);
-
-			//coin
-			MCoin.bind(commandBuffer);
-			DSCoin.bind(commandBuffer, PBlinn, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MCoin.indices.size()), 1, 0, 0, 0);
-
-			//POPULATE SCENE
-			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 		
 			//HAIR
 			PHair.bind(commandBuffer);
@@ -638,6 +620,46 @@ class MeshLoader : public BaseProject {
 			DSskyBoxPar.bind(commandBuffer, PskyBox, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MskyBox.indices.size()), 1, 0, 0, 0);
+
+			//mainscene
+
+			PBlinn.bind(commandBuffer);
+			Mship.bind(commandBuffer);
+			DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
+			DSship.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(Mship.indices.size()), 1, 0, 0, 0);
+
+			//car
+			MCar.bind(commandBuffer);
+			DSCar.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MCar.indices.size()), 1, 0, 0, 0);
+
+			//head
+			MHead.bind(commandBuffer);
+			DSHead.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MHead.indices.size()), 1, 0, 0, 0);
+
+			//POPULATE SCENE
+			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
+
+			//coin
+			if (coinTaken == 0) {
+				MCoin.bind(commandBuffer);
+				DSCoin.bind(commandBuffer, PBlinn, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer,
+					static_cast<uint32_t>(MCoin.indices.size()), 1, 0, 0, 0);
+			}
+		}
+		else {
+			PUI.bind(commandBuffer);
+			DSGlobal.bind(commandBuffer, PUI, 0, currentImage);	// The Global Descriptor Set (Set 0)
+			MMenu.bind(commandBuffer);
+			DSMenu.bind(commandBuffer, PUI, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MMenu.indices.size()), 1, 0, 0, 0);
 		}
 
 		txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
@@ -1058,7 +1080,7 @@ class MeshLoader : public BaseProject {
 		BlinnUniformBufferObject uboCoin{};
 		BlinnMatParUniformBufferObject coinMatParUbo{};
 
-		uboCoin.mMat = glm::scale(glm::mat4(1.0), glm::vec3(500000, 1, 500000));
+		uboCoin.mMat =  glm::translate(glm::mat4(1), glm::vec3(20,1 + 0.3 * sin(cTime*2),30)) * glm::rotate(glm::mat4(1.0), glm::radians(cTime * 100), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(0.02, 0.02,0.02));
 		uboCoin.mvpMat = View * uboCoin.mMat;
 		uboCoin.nMat = glm::transpose(glm::inverse(uboCoin.mMat));
 
@@ -1066,10 +1088,22 @@ class MeshLoader : public BaseProject {
 		coinMatParUbo.isCar = 0.0;
 		coinMatParUbo.carTexture = 0.0;
 
+		if (sqrt(pow(Pos.x - 20, 2) + pow(Pos.z - 30, 2)) < 2) {
+			coinMatParUbo.isCar = 3.0;
+			coinTaken = 1;
+			//RebuildPipeline();
+		}
+
 		DSCoin.map(currentImage, &uboCoin, 0);
 		DSCoin.map(currentImage, &coinMatParUbo, 2);
 
-
+		//TEST MENU
+		BlinnUniformBufferObject uboMenu{};
+		glm::mat4 projection_matrix = glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1)) * glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+		uboMenu.mMat = glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(8, 8, 8));
+		uboMenu.mvpMat = projection_matrix * uboMenu.mMat ; //* glm::mat4(glm::mat3(View));
+		uboMenu.nMat = glm::transpose(glm::inverse(uboMenu.mMat));
+		DSMenu.map(currentImage, &uboMenu, 0);
 	}	
 
 	//MOVE THE CAR

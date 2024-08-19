@@ -9,8 +9,7 @@ struct SingleText {
 	const char *l[6];
 	int start;
 	int len;
-	int textLine;
-	//TextAlignment alignment;
+	int scene;
 };
 
 	const float VisV[] = {1.0,0.0,0.0,2.0,0.0,1.0,0.0,-1.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,0.707,-0.707,0.0,0.0,0.707,0.707,0.0,0.0,0.0,0.0,1.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,1.0,0.5,0.0,0.0,0.0,0.0,0.5,0.0,0.0,0.0,0.0,2.0,0.0,0.0,0.0,0.0,1.0,-1.0,0.0,0.0,0.0,0.0,-1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,1.0,1.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0};
@@ -125,10 +124,7 @@ struct TextMaker {
 		//todo
 		float PtoTdx[6] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 ,-0.95};
 		/*for (auto& Txt : *Texts) {
-			for (int i = 0; i < Txt.usedLines; i++) {
-				
-				PtoTdx[i] = -(0.03 * strlen(Txt.l[i]) / 2);
-			}
+			
 			break;
 		}*/
 		float PtoTdy = -0.95;
@@ -139,11 +135,23 @@ struct TextMaker {
 		int texH = 512;
 		
 		int tpx = 0;
-		int tpy = Fonts[FontId].lineHeight * (*Texts)[0].textLine;
+		int tpy = Fonts[FontId].lineHeight;
 		
 		int ib = 0, k = 0;
 		for(auto& Txt : *Texts) {
 			Txt.start = ib;
+			if (Txt.scene == 0) {
+				tpy = Fonts[FontId].lineHeight * 6;
+			}
+			for (int i = 0; i < Txt.usedLines; i++) {
+				if (Txt.scene == 0) {
+					PtoTdx[i] = -(0.035 * strlen(Txt.l[i]) / 2);
+				}
+				else {
+					PtoTdx[i] = -0.95;
+				}
+				
+			}
 			for(int i = 0; i < Txt.usedLines; i++) {
 				for(int j = 0; j < strlen(Txt.l[i]); j++) {
 					int c = ((int)Txt.l[i][j]) - minChar;

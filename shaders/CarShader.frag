@@ -215,4 +215,7 @@ void main() {
 	vec3 col = RendEqSol + Ambient;
 	
 	outColor = vec4(col, 1.0f);
+	if(mubo.isCar == 3){
+	    outColor = vec4(0.0,0.0,0.0, 0.5f);
+	}
 }
