@@ -245,6 +245,7 @@ class MeshLoader : public BaseProject {
 		float coinTaken[NCOINS];
 			
 	//MATRICES
+		glm::mat4 ModelView;
 		glm::mat4 View;
 		glm::mat4 baseTr = glm::mat4(1);
 
@@ -830,6 +831,7 @@ class MeshLoader : public BaseProject {
 				glm::translate(glm::mat4(1), glm::vec3(0, 2, 8))
 			);
 			View = M * Mv;
+			ModelView = View;
 		}
 
 		glm::mat4 M = glm::perspective(glm::radians(45.0f), Ar, 0.1f, 160.0f);
@@ -937,7 +939,7 @@ class MeshLoader : public BaseProject {
 		}
 		gubo.lightColor[0] = sunColor;
 
-		gubo.eyePos = glm::vec3(glm::inverse(View) * glm::vec4(0, 0, 0, 1));
+		gubo.eyePos = glm::vec3(glm::inverse(ModelView) * glm::vec4(0, 0, 0, 1));
 
 		//HEADLIGHTS
 		gubo.lightDir[1] = carDirection;
@@ -971,7 +973,7 @@ class MeshLoader : public BaseProject {
 		//SUNPARAMETERS
 
 		EmissionUniformBufferObject emissionUbo{};
-		emissionUbo.mvpMat = View * translate(glm::mat4(1), gubo.lightDir[0] * 500.0f) * glm::scale(glm::mat4(1), glm::vec3(20, 20, 20)) * baseTr;
+		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 500.0f) * glm::scale(glm::mat4(1), glm::vec3(20, 20, 20)) * baseTr;
 		DSsun.map(currentImage, &emissionUbo, 0);
 
 		EmissionUniformBufferObject moonUbo{};
@@ -994,7 +996,7 @@ class MeshLoader : public BaseProject {
             BlinnUniformBufferObject uboScene{};
 			BlinnMatParUniformBufferObject uboSceneMatPar{};
 
-			uboSceneMatPar.Power = 200.0;
+			uboSceneMatPar.Power = 150.0;
 			uboSceneMatPar.isCar = 0.0;
 			uboSceneMatPar.carTexture = 0.0;
 
@@ -1018,14 +1020,14 @@ class MeshLoader : public BaseProject {
 		//camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f));
 
 		//glm::mat4 rotationMatSky = glm::rotate(glm::mat4(1.0f), -camYaw, glm::vec3(0, 1, 0));
-		glm::vec3 direction(View[0][2], View[1][2], View[2][2]);
+		//glm::vec3 direction(View[0][2], View[1][2], View[2][2]);
 
 		// calcolo lo yaw della camera
-		float yawAngle = atan2(direction.x, direction.z);
-		glm::mat4 reverseYawRotation = glm::rotate(glm::mat4(1.0f), - 2 * yawAngle, glm::vec3(0, 1, 0));
+		//float yawAngle = atan2(direction.x, direction.z);
+		//glm::mat4 reverseYawRotation = glm::rotate(glm::mat4(1.0f), - 2 * yawAngle, glm::vec3(0, 1, 0));
 
 		//cambio la direzione dello yaw della camera e lo metto insieme alla rotazione della camera
-		sbubo.mvpMat = M * reverseYawRotation * glm::mat4(glm::mat3(View))  ;
+		sbubo.mvpMat = M * glm::mat4(glm::mat3(View))  ;
 		
 		//sbubo.mvpMat = glm::scale(M, glm::vec3(-1, 1, 1)) * glm::mat4(glm::mat3(View));
 		DSskyBox.map(currentImage, &sbubo, 0);
@@ -1142,6 +1144,7 @@ class MeshLoader : public BaseProject {
 		M = glm::perspective(FOVy, Ar, nearPlane, farPlane);
 
 		glm::mat4 Mv = glm::rotate(glm::mat4(1.0), -Roll, glm::vec3(0, 0, 1)) * glm::scale(glm::mat4(1.0), glm::vec3(1,-1,1))* glm::lookAt(Pos, Target, glm::vec3(Up[0], Up[1], Up[2]));
+		ModelView = Mv;
 		M = M * Mv;
 
 		return M;
@@ -1159,6 +1162,8 @@ class MeshLoader : public BaseProject {
 		glm::mat4 MPitch = glm::rotate(glm::mat4(1.0f), Pitch, glm::vec3(-1, 0, 0));
 		glm::mat4 MRoll = glm::rotate(glm::mat4(1.0f), Roll, glm::vec3(0, 0, -1));
 		glm::mat4 MS = glm::scale(glm::mat4(1.0), glm::vec3(1,-1,1));
+
+		ModelView = MS * MRoll * MPitch * MYaw * MT;
 
 		M = M * MS * MRoll * MPitch * MYaw * MT;
 
