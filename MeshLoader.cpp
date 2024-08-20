@@ -79,6 +79,7 @@ void MakeCylinder(float radius, float height, int slices, std::vector<std::array
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
 #define NLIGHTS 4
+#define NCOINS 10
 
 //TextAlignment alignment = Menu;
 
@@ -97,6 +98,12 @@ struct BlinnUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 	alignas(16) glm::mat4 mMat;
 	alignas(16) glm::mat4 nMat;
+};
+
+struct CoinBlinnUniformBufferObject {
+	alignas(16) glm::mat4 mvpMat[NCOINS];
+	alignas(16) glm::mat4 mMat[NCOINS];
+	alignas(16) glm::mat4 nMat[NCOINS];
 };
 
 struct BlinnMatParUniformBufferObject {
@@ -136,6 +143,11 @@ struct SkyMatParUniformBufferObject {
 	alignas(4)  float Ang;
 	alignas(4)  float ShowCloud;
 	alignas(4)  float sinSun;
+};
+
+struct CoinMatParUniformBufferObject {
+	alignas(4)  float Power;
+	alignas(16) glm::mat4 CoinTaken[NCOINS];
 };
 
 /********************The vertices data structures********************/
@@ -228,7 +240,9 @@ class MeshLoader : public BaseProject {
 	//CarTexture
 		float carTexture = 0;
 	//Coins
-		int coinTaken = 0;
+		float xCoordCoins[NCOINS] = { 20, 21,22,23,24,25,26,27,28,29 };
+		float zCoordCoins[NCOINS] = {30,31,32,33,34,35,36,37,38,39};
+		float coinTaken[NCOINS];
 			
 	//MATRICES
 		glm::mat4 View;
@@ -243,6 +257,7 @@ class MeshLoader : public BaseProject {
 	DescriptorSetLayout DSLskyBoxPar; // For skyBox parameters
 	DescriptorSetLayout DSLHair;	
 	DescriptorSetLayout DSLUI;
+	DescriptorSetLayout DSLCoin;
 
 	//********************VERTEX DESCRIPTOR
 	VertexDescriptor VDBlinn;
@@ -255,6 +270,7 @@ class MeshLoader : public BaseProject {
 	Pipeline PHair;
 	Pipeline PskyBox;
 	Pipeline PUI;
+	Pipeline PCoin;
 
 	// Models, textures and Descriptors (values assigned to the uniforms)
 	// Please note that Model objects depends on the corresponding vertex structure
@@ -283,7 +299,7 @@ class MeshLoader : public BaseProject {
 	DescriptorSet DSHead;
 
 	Model MCoin;
-	Texture TCoin;
+	Texture TCoin, TCoinNorm;
 	DescriptorSet DSCoin;
 
 	Model MMenu;
@@ -372,6 +388,12 @@ class MeshLoader : public BaseProject {
 			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
 			});
 
+		DSLCoin.init(this, {
+			{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT, sizeof(CoinBlinnUniformBufferObject), 1},
+			{1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 0, 1},
+			{2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT, 1, 1},
+			{3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(CoinMatParUniformBufferObject), 1},
+			});
 
 		// Vertex descriptors INITIALIZATION
 		VDBlinn.init(this, {
@@ -408,7 +430,6 @@ class MeshLoader : public BaseProject {
 					sizeof(glm::vec2), UV}
 		});
 
-
 		// Pipelines INITIALIZATION [Shader couples]
 		PEmission.init(this, &VDEmission, "shaders/EmissionVert.spv", "shaders/EmissionFrag.spv", { &DSLEmission, &DSLSunPar});
 		PBlinn.init(this, &VDBlinn,  "shaders/CarVert.spv",    "shaders/CarFrag.spv", {&DSLGlobal, &DSLBlinn});
@@ -416,6 +437,7 @@ class MeshLoader : public BaseProject {
 		PskyBox.init(this, &VDEmission, "shaders/SkyBoxVert.spv", "shaders/SkyBoxFrag.spv", { &DSLskyBox, &DSLskyBoxPar});
 		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
 		PUI.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/UIFrag.spv", { &DSLGlobal, &DSLUI });
+		PCoin.init(this, &VDHair, "shaders/NormalMapVert.spv", "shaders/NormalMapFrag.spv", { &DSLGlobal, &DSLCoin });
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
@@ -425,30 +447,7 @@ class MeshLoader : public BaseProject {
 		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
 		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
 		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
-
-		/*std::vector<std::array<float, 6>> vertices_pos;
-		MakeCylinder(1.0f, 2.0f, 32, vertices_pos, MCoin.indices);
-
-		int mainStride = VDBlinn.Bindings[0].stride;
-
-		MCoin.vertices = std::vector<unsigned char>(vertices_pos.size() * sizeof(BlinnVertex), 0);
-		for (int i = 0; i < vertices_pos.size(); i++) {
-			BlinnVertex* V_vertex = (BlinnVertex*)(&(MCoin.vertices[i * mainStride]));
-			V_vertex->pos.x = vertices_pos[i][0];
-			V_vertex->pos.y = vertices_pos[i][1];
-			V_vertex->pos.z = vertices_pos[i][2];
-			V_vertex->UV.x = vertices_pos[i][0];
-			V_vertex->UV.y = vertices_pos[i][2];
-			V_vertex->norm.x = vertices_pos[i][3];
-			V_vertex->norm.y = vertices_pos[i][4];
-			V_vertex->norm.z = vertices_pos[i][5];
-
-			//printVec3("V",vertices_pos[i]);			
-		}
-
-		MCoin.initMesh(this, &VDBlinn);*/
-
-		MCoin.init(this, &VDBlinn, "models/COIN.mgcg", MGCG);
+		MCoin.init(this, &VDHair, "models/COIN.mgcg", MGCG);
 		MMenu.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
 		
 		// Create the textures
@@ -464,6 +463,7 @@ class MeshLoader : public BaseProject {
 		THair2.init(this, "textures/HAIR2.jpg");
 		THead.init(this, "textures/HEAD.png");
 		TCoin.init(this, "textures/COIN_TEXTURE.png");
+		TCoinNorm.init(this, "textures/COIN_NORMAL.png");
 		TMenu.init(this, "textures/Menu_texture.jfif");
 
 		//INITIALIZE THE SCENE
@@ -484,6 +484,7 @@ class MeshLoader : public BaseProject {
 		PHair.create();
 		PskyBox.create();
 		PUI.create();
+		PCoin.create();
 
 		// Here you define the data set
 		DSsun.init(this, &DSLEmission, { &Tsun });
@@ -497,7 +498,7 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
-		DSCoin.init(this, &DSLBlinn, { &TCoin,&TCoin ,&TCoin });
+		DSCoin.init(this, &DSLCoin, { &TCoin, &TCoinNorm });
 		DSMenu.init(this, &DSLUI, { &TMenu});
 
 		
@@ -514,6 +515,7 @@ class MeshLoader : public BaseProject {
 		PHair.cleanup();
 		PskyBox.cleanup();
 		PUI.cleanup();
+		PCoin.cleanup();
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
@@ -561,6 +563,7 @@ class MeshLoader : public BaseProject {
 		MHead.cleanup();
 
 		TCoin.cleanup();
+		TCoinNorm.cleanup();
 		MCoin.cleanup();
 
 		TMenu.cleanup();
@@ -575,6 +578,7 @@ class MeshLoader : public BaseProject {
 		DSLskyBox.cleanup();
 		DSLskyBoxPar.cleanup();
 		DSLUI.cleanup();
+		DSLCoin.cleanup();
 
 		//SCENE CLEANUP
 		scene.localCleanup();
@@ -585,6 +589,7 @@ class MeshLoader : public BaseProject {
 		PEmission.destroy();
 		PHair.destroy();
 		PskyBox.destroy();
+		PCoin.destroy();
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
@@ -646,12 +651,13 @@ class MeshLoader : public BaseProject {
 			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
 
 			//coin
-			if (coinTaken == 0) {
-				MCoin.bind(commandBuffer);
-				DSCoin.bind(commandBuffer, PBlinn, 1, currentImage);
-				vkCmdDrawIndexed(commandBuffer,
-					static_cast<uint32_t>(MCoin.indices.size()), 1, 0, 0, 0);
-			}
+			PCoin.bind(commandBuffer);
+			MCoin.bind(commandBuffer);
+			DSGlobal.bind(commandBuffer, PCoin, 0, currentImage);
+			DSCoin.bind(commandBuffer, PCoin, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MCoin.indices.size()), NCOINS, 0, 0, 0);
+			
 		}
 		else {
 			PUI.bind(commandBuffer);
@@ -1077,25 +1083,24 @@ class MeshLoader : public BaseProject {
 
 
 		//TEST COIN
-		BlinnUniformBufferObject uboCoin{};
-		BlinnMatParUniformBufferObject coinMatParUbo{};
+		CoinBlinnUniformBufferObject uboCoin{};
+		CoinMatParUniformBufferObject coinMatParUbo{};
 
-		uboCoin.mMat =  glm::translate(glm::mat4(1), glm::vec3(20,1 + 0.3 * sin(cTime*2),30)) * glm::rotate(glm::mat4(1.0), glm::radians(cTime * 100), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(0.02, 0.02,0.02));
-		uboCoin.mvpMat = View * uboCoin.mMat;
-		uboCoin.nMat = glm::transpose(glm::inverse(uboCoin.mMat));
+		for (int i = 0; i < NCOINS; i++)
+		{
+			uboCoin.mMat[i] = glm::translate(glm::mat4(1), glm::vec3(xCoordCoins[i], 1 + 0.3 * sin(cTime * 2), zCoordCoins[i])) * glm::rotate(glm::mat4(1.0), glm::radians(cTime * 100), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(0.02, 0.02, 0.02));
+			uboCoin.mvpMat[i] = View * uboCoin.mMat[i];
+			uboCoin.nMat[i] = glm::transpose(glm::inverse(uboCoin.mMat[i]));
 
-		coinMatParUbo.Power = 200.0;
-		coinMatParUbo.isCar = 0.0;
-		coinMatParUbo.carTexture = 0.0;
-
-		if (sqrt(pow(Pos.x - 20, 2) + pow(Pos.z - 30, 2)) < 2) {
-			coinMatParUbo.isCar = 3.0;
-			coinTaken = 1;
-			//RebuildPipeline();
+			coinMatParUbo.Power = 200.0;
+			if (coinTaken[i] == 0) {
+				coinStateUpdate(i);
+			}
+			coinMatParUbo.CoinTaken[i][0][0] = coinTaken[i];	
+			
 		}
-
 		DSCoin.map(currentImage, &uboCoin, 0);
-		DSCoin.map(currentImage, &coinMatParUbo, 2);
+		DSCoin.map(currentImage, &coinMatParUbo, 3);
 
 		//TEST MENU
 		BlinnUniformBufferObject uboMenu{};
@@ -1105,6 +1110,17 @@ class MeshLoader : public BaseProject {
 		uboMenu.nMat = glm::transpose(glm::inverse(uboMenu.mMat));
 		DSMenu.map(currentImage, &uboMenu, 0);
 	}	
+
+	//COIN STATE UPDATE
+	void coinStateUpdate(int instance) {
+
+		if (sqrt(pow(Pos.x - xCoordCoins[instance], 2) + pow(Pos.z - zCoordCoins[instance], 2)) < 2 || coinTaken[instance] == 1) {
+			coinTaken[instance] = 1;
+		}
+		else {
+			coinTaken[instance] = 0;
+		}
+	}
 
 	//MOVE THE CAR
 	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {

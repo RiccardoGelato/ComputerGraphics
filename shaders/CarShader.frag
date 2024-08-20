@@ -195,7 +195,7 @@ void main() {
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor * gubo.lightOn;
 
-    lightDir = light_dir(fragPos, 3, 0);
+    lightDir = -light_dir(fragPos, 3, 0);
     lightColor = light_color(fragPos, 3, 0);
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
