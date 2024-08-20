@@ -240,8 +240,8 @@ class MeshLoader : public BaseProject {
 	//CarTexture
 		float carTexture = 0;
 	//Coins
-		float xCoordCoins[NCOINS] = { 20, 21,22,23,24,25,26,27,28,29 };
-		float zCoordCoins[NCOINS] = {30,31,32,33,34,35,36,37,38,39};
+		float xCoordCoins[NCOINS] = { 20, 0,-20,-10,-15,-60,35,-65,10,30 };
+		float zCoordCoins[NCOINS] = {30,30,30,10,50,70,70,-15,-15,-10};
 		float coinTaken[NCOINS];
 			
 	//MATRICES
