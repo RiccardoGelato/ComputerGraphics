@@ -44,7 +44,7 @@ layout(set = 1, binding = 4) uniform sampler2D tex3;
 //2-point
 
 vec3 direct_light_dir(vec3 pos, int i) {
-	return normalize(gubo.lightDir[0]);
+	return normalize(gubo.lightDir[i]);
 }
 
 vec3 direct_light_color(vec3 pos, int i) {
@@ -102,7 +102,7 @@ vec3 BRDFNormal(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
 	vec3 Diffuse;
 	vec3 Specular;
 	Diffuse = Albedo * max(dot(Norm, LD),0.0f);
-	Specular = vec3(pow(max(dot(EyeDir, -reflect(LD, Norm)),0.0f), 160.0f));
+	Specular = vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
 
 	return Diffuse + Specular;
 }
@@ -117,8 +117,8 @@ vec3 BRDFToon(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
 
     //vec3 Diffuse = Albedo * clamp(dot(Norm, LD),0.0,1.0);
     vec3 Diffuse = Albedo;
-    //vec3 Specular = Ms * vec3(pow(clamp(dot(EyeDir, -reflect(LD, Norm)),0.0,1.0), 200.0f));
-    vec3 Specular = Ms;
+    vec3 Specular = Ms; //* vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
+
 
     if(cosa <= 0){
         Diffuse = Diffuse * 0;
@@ -195,7 +195,7 @@ void main() {
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor * gubo.lightOn;
 
-    lightDir = -light_dir(fragPos, 3, 0);
+    lightDir = light_dir(fragPos, 3, 0);
     lightColor = light_color(fragPos, 3, 0);
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;

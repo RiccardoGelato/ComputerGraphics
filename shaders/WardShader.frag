@@ -27,7 +27,7 @@ layout(set = 1, binding = 2) uniform sampler2D spet;
 //FUNCTIONS DIFFERENT LIGHTS
 
 vec3 direct_light_dir(vec3 pos, int i) {
-	return normalize(gubo.lightDir[0]);
+	return normalize(gubo.lightDir[i]);
 }
 
 vec3 direct_light_color(vec3 pos, int i) {
@@ -60,7 +60,7 @@ vec3 spot_light_color(vec3 pos, int i) {
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT, float alphaB) {
 
 	vec3 Diffuse = Md * clamp(dot(N, L),0.0,1.0);
-	//vec3 Specular = Ms * vec3(pow(clamp(dot(V, -reflect(L, N)),0.0,1.0), 200.0f));
+	//vec3 Specular = Ms * vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
 	vec3 H = normalize(L + V);
 	float el1 = (dot(H,T)/alphaT) * (dot(H,T)/alphaT);
 	float el2 = (dot(H,B)/alphaB) * (dot(H,B)/alphaB);
@@ -70,7 +70,7 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT
 	float denominator = 4.0 * PI * alphaT * alphaB * sqrt( dot(V, N) / dot( L, N));
 	vec3 Specular = Ms * numerator / denominator;
 
-	return (Diffuse + Specular);
+	return clamp((Diffuse + Specular), 0.0, 1.0);
 }
 
 void main() {

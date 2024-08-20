@@ -959,6 +959,7 @@ class MeshLoader : public BaseProject {
 			moonColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		}
 		gubo.lightColor[3] = moonColor;
+		gubo.lightPos[3] = Pos;
 
 		gubo.cosIn = 0.96;
 		gubo.cosOut = 0.86;
@@ -1054,7 +1055,7 @@ class MeshLoader : public BaseProject {
 		}
 
 		//translation based on the car position
-		glm::vec3 passengerPos = Pos + carDirection * forwardOffset 
+		glm::vec3 passengerPos = Pos + carDirection * forwardOffset
 								  + glm::vec3(0, upwardOffset, 0) 
 								  + glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffset;
 
@@ -1092,7 +1093,7 @@ class MeshLoader : public BaseProject {
 			uboCoin.mvpMat[i] = View * uboCoin.mMat[i];
 			uboCoin.nMat[i] = glm::transpose(glm::inverse(uboCoin.mMat[i]));
 
-			coinMatParUbo.Power = 200.0;
+			coinMatParUbo.Power = 150.0;
 			if (coinTaken[i] == 0) {
 				coinStateUpdate(i);
 			}
