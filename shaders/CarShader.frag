@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_debug_printf : enable
 
-#define NLIGHTS 4
+#define NLIGHTS 28
 
 // this defines the variable received from the Vertex Shader
 // the locations must match the one of its out variables
@@ -56,8 +56,8 @@ vec3 point_light_dir(vec3 pos, int i) {
 }
 
 vec3 point_light_color(vec3 pos, int i) {
-	float division = gubo.lightColor[i].a / length(gubo.lightPos[i] - pos);
-	float decay = division * division;
+	float division = /*gubo.lightColor[i].a*/ 2 / length(gubo.lightPos[i] - pos);
+	float decay = pow(division, 1.5);
 	return decay * gubo.lightColor[i].rgb;
 }
 
@@ -117,7 +117,7 @@ vec3 BRDFToon(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
 
     //vec3 Diffuse = Albedo * clamp(dot(Norm, LD),0.0,1.0);
     vec3 Diffuse = Albedo;
-    vec3 Specular = Ms; //* vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
+    vec3 Specular = Ms * vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
 
 
     if(cosa <= 0){
@@ -200,6 +200,13 @@ void main() {
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
+    for(int j = 4; j < NLIGHTS; j++){
+                lightDir = light_dir(fragPos, j, 1);
+                lightColor = light_color(fragPos, j, 1);
+
+                RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
+    }
+
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
 	/*const vec3 cxp = vec3(1.0,1.0,1.0) * 0.025f;
     const vec3 cxn = vec3(1.0,1.0,1.0) * 0.025f;
@@ -215,7 +222,5 @@ void main() {
 	vec3 col = RendEqSol + Ambient;
 	
 	outColor = vec4(col, 1.0f);
-	if(mubo.isCar == 3){
-	    outColor = vec4(0.0,0.0,0.0, 0.5f);
-	}
+	
 }

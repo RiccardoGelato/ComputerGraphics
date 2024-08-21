@@ -78,7 +78,7 @@ void MakeCylinder(float radius, float height, int slices, std::vector<std::array
 
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
-#define NLIGHTS 4
+#define NLIGHTS 28
 #define NCOINS 10
 
 //TextAlignment alignment = Menu;
@@ -243,6 +243,9 @@ class MeshLoader : public BaseProject {
 		float xCoordCoins[NCOINS] = { 20, 0,-20,-10,-15,-60,35,-65,10,30 };
 		float zCoordCoins[NCOINS] = {30,30,30,10,50,70,70,-15,-15,-10};
 		float coinTaken[NCOINS];
+
+	//street lamps
+		glm::vec3 streetLampsPositions[NLIGHTS - 4];
 			
 	//MATRICES
 		glm::mat4 ModelView;
@@ -476,6 +479,16 @@ class MeshLoader : public BaseProject {
 		//INITIALIZE THE COLLIDERS
 		InitializeColliders();
 		
+		printf("FANCULO LA POLICE\n");
+		int count = 0;
+		for (const auto& instanceData : scene.instancesParsedCopy) {
+			if (instanceData.second.model == "M_strada_dritta" && instanceData.second.transform[0][0] == 1 && instanceData.second.transform[1][1] == 1 && instanceData.second.transform[2][2] == 1) {
+				streetLampsPositions[count] = { instanceData.second.transform[3][0] + 0.3, 4.5, instanceData.second.transform[3][2] - 4.5 };
+				streetLampsPositions[count + 1] = { instanceData.second.transform[3][0] - 7.75, 4.5, instanceData.second.transform[3][2] + 4.6 };
+				count = count + 2;
+			}
+		}
+		printf("%d", count);
 	}
 	
 	void pipelinesAndDescriptorSetsInit() {
@@ -963,6 +976,25 @@ class MeshLoader : public BaseProject {
 		gubo.lightColor[3] = moonColor;
 		gubo.lightPos[3] = Pos;
 
+		for (int i = 0; i < NLIGHTS-4; i++)
+		{
+			gubo.lightDir[i+4] = carDirection;
+			gubo.lightColor[i+4] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+			gubo.lightPos[i+4] = streetLampsPositions[i];
+		}
+
+		/*gubo.lightDir[4] = carDirection;
+		gubo.lightColor[4] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos[4] = glm::vec3(15.3, 4.5, 25.5);
+
+		gubo.lightDir[5] = carDirection;
+		gubo.lightColor[5] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos[5] = glm::vec3(0.3, 4.5, 25.5);
+
+		gubo.lightDir[6] = carDirection;
+		gubo.lightColor[6] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+		gubo.lightPos[6] = glm::vec3(-29.7, 4.5, 25.5);*/
+
 		gubo.cosIn = 0.96;
 		gubo.cosOut = 0.86;
 		gubo.lightOn = lightOn;
@@ -1067,7 +1099,7 @@ class MeshLoader : public BaseProject {
 		glm::mat4 passengerMat = glm::translate(glm::mat4(1), passengerPos) * rotationMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));;
 
 
-		uboHair.mMat = glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
+		uboHair.mMat =glm::translate(glm::mat4(1), glm::vec3(7.25,4.5,34.6)) * glm::scale(glm::mat4(1), glm::vec3(0.005, 0.005, 0.005));//glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
 		uboHair.mvpMat = View * uboHair.mMat;
 		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
 

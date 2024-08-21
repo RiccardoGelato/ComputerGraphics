@@ -19,6 +19,7 @@ class SceneProject {
     public:
         //variable used to parse the json file
         std::unordered_map<std::string, InstanceScene> instancesParsed;
+        std::unordered_map<std::string, InstanceScene> instancesParsedCopy;
 
         std::unordered_map<std::string, Model> models;
         std::unordered_map<std::string, Texture> textures;
@@ -75,6 +76,7 @@ class SceneProject {
             }
 
             instancesParsed[instanceData["id"]] = instance;
+            instancesParsedCopy[instanceData["id"]] = instance;
 
             DSScene = (DescriptorSet **)calloc(instancesParsed.size(), sizeof(DescriptorSet *));
         }

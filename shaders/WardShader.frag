@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#define NLIGHTS 4
+#define NLIGHTS 28
 
 layout(location = 0) in vec3 fragPos;
 layout(location = 1) in vec3 fragNorm;
@@ -39,8 +39,8 @@ vec3 point_light_dir(vec3 pos, int i) {
 }
 
 vec3 point_light_color(vec3 pos, int i) {
-	float division = gubo.lightColor[i].a / length(gubo.lightPos[i] - pos);
-	float decay = division * division;
+	float division = /*gubo.lightColor[i].a*/ 2 / length(gubo.lightPos[i] - pos);
+	float decay = pow(division, 1.5);
 	return decay * gubo.lightColor[i].rgb;
 }
 
@@ -53,6 +53,30 @@ vec3 spot_light_color(vec3 pos, int i) {
 	float division = gubo.lightColor[i].a / length(gubo.lightPos[i] - pos);
     float decay = pow(division, 1.2);
 	return decay * gubo.lightColor[i].rgb * gubo.lightColor[i].rgb * clamp((cosa - gubo.cosOut)/(gubo.cosIn - gubo.cosOut), 0 ,1);
+}
+
+vec3 light_dir(vec3 pos, int i, float type){
+    vec3 dir;
+    if(type == 0){
+        dir = direct_light_dir(pos, i);
+    }else if(type == 1){
+        dir = point_light_dir(pos, i);
+    }else{
+        dir = spot_light_dir(pos, i);
+    }
+    return dir;
+}
+
+vec3 light_color(vec3 pos, int i,float type){
+    vec3 color;
+    if(type == 0){
+        color = direct_light_color(pos, i);
+    }else if(type == 1){
+        color = point_light_color(pos, i);
+    }else{
+        color = spot_light_color(pos, i);
+    }
+    return color;
 }
 
 //BRDF
@@ -104,6 +128,13 @@ void main() {
         lightColor = direct_light_color(fragPos, 3);
 
         RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor;
+
+        for(int j = 4; j < NLIGHTS; j++){
+                lightDir = light_dir(fragPos, j, 1);
+                lightColor = light_color(fragPos, j, 1);
+
+                RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor;
+        }
 
     	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
     	/*const vec3 cxp = vec3(1.0,0.0,0.0) * 0.025f;
