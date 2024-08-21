@@ -479,7 +479,6 @@ class MeshLoader : public BaseProject {
 		//INITIALIZE THE COLLIDERS
 		InitializeColliders();
 		
-		printf("FANCULO LA POLICE\n");
 		int count = 0;
 		for (const auto& instanceData : scene.instancesParsedCopy) {
 			if (instanceData.second.model == "M_strada_dritta" && instanceData.second.transform[0][0] == 1 && instanceData.second.transform[1][1] == 1 && instanceData.second.transform[2][2] == 1) {
@@ -488,7 +487,6 @@ class MeshLoader : public BaseProject {
 				count = count + 2;
 			}
 		}
-		printf("%d", count);
 	}
 	
 	void pipelinesAndDescriptorSetsInit() {
@@ -1099,7 +1097,7 @@ class MeshLoader : public BaseProject {
 		glm::mat4 passengerMat = glm::translate(glm::mat4(1), passengerPos) * rotationMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));;
 
 
-		uboHair.mMat =glm::translate(glm::mat4(1), glm::vec3(7.25,4.5,34.6)) * glm::scale(glm::mat4(1), glm::vec3(0.005, 0.005, 0.005));//glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
+		uboHair.mMat = glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
 		uboHair.mvpMat = View * uboHair.mMat;
 		uboHair.nMat = glm::transpose(glm::inverse(uboHair.mMat));
 
