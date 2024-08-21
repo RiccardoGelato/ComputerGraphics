@@ -18,12 +18,16 @@ void main() {
 	float yawstars = -(atan(fragTexCoord.x, fragTexCoord.z)/6.2831853 + 0.5);
 	float yaw = -(atan(fragTexCoord.x, fragTexCoord.z)/6.2831853 +mubo.Ang + 0.5);
 	float pitch = -(atan(fragTexCoord.y, sqrt(fragTexCoord.x*fragTexCoord.x+fragTexCoord.z*fragTexCoord.z))/3.14159265+ 0.5);
+
+
 	float sinSun;
 	if(mubo.sinSun < 0){
 	    sinSun = 0.0;
 	}else{
 	    sinSun = mubo.sinSun;
 	}
+
 	outColor = (vec4(0.1,0.5,0.9,1.0) * 0.8 + texture(stars, vec2(yaw, pitch)) * mubo.ShowCloud*0.2) * sinSun
 	+ (texture(skybox, vec2(yawstars, pitch))*0.9 + texture(stars, vec2(yaw, pitch))*mubo.ShowCloud*0.1) * (1 - sinSun);
+
 }
