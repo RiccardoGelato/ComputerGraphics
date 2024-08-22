@@ -91,7 +91,7 @@ const char* bdrf = bdrfState[0];
 std::vector<SingleText> outText = {
 	{2, {"Press Space To Start", "", "", "", "", ""}, 0, 0, 0},
 	{1, {"Press Space To See Commands","","", "","", ""}, 0, 0, 1},
-	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3","ChangeCamera: P", "ChangeTexture: 5",  "Restart: Space"}, 0, 0, 2},
+	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3", "ChangeTexture: 4","ChangeCamera: P",  "Restart: Space"}, 0, 0, 2},
 };
 
 struct BlinnUniformBufferObject {
