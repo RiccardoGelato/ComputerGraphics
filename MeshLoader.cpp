@@ -207,7 +207,7 @@ class MeshLoader : public BaseProject {
 
 		glm::vec3 carDirection;
 		glm::vec3 Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
-		glm::vec3 Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+		float carSpeed = 0.0f;
 
 		//MATRICES FOR THE MODEL
 		glm::mat4 initialRotation;
@@ -241,7 +241,7 @@ class MeshLoader : public BaseProject {
 	//Coins
 		float xCoordCoins[NCOINS] = { 20, 0,-20,-10,-15,-60,35,-65,10,30 };
 		float zCoordCoins[NCOINS] = {30,30,30,10,50,70,70,-15,-15,-10};
-		float coinTaken[NCOINS];
+		float coinTaken[NCOINS] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 	//street lamps
 		glm::vec3 streetLampsPositions[NLIGHTS - 4];
@@ -847,7 +847,7 @@ class MeshLoader : public BaseProject {
 				debounce = true;
 				curDebounce = GLFW_KEY_R;
 				Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
-				Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+				carSpeed = 0.0f;
 			}
 		}
 		else {
@@ -916,18 +916,28 @@ class MeshLoader : public BaseProject {
 		carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
 
 		//angolo di sterzata
-		steeringAngle = m.x * ROT_SPEED_CAR * deltaT * m.z;
-		
+		int direction = 1;
+		if(carSpeed < 0 ){
+			direction = -1;
+		}
+		if(carSpeed == 0){
+			direction = 0;
+		}
+		steeringAngle = m.x * ROT_SPEED_CAR * deltaT * direction;
+
 		//raggio di curvatura
 		turningRadius = R / tan(steeringAngle);
 
 		//aggiorno la velocità e la limito ad una massima
-		Vel += m.z * carDirection * ACC_CAR * deltaT; 
-		if(glm::length(Vel) > MAX_SPEED) {
-			Vel = glm::normalize(Vel) * MAX_SPEED;
+		carSpeed += m.z * ACC_CAR * deltaT;
+
+		if(carSpeed > MAX_SPEED) {
+			carSpeed = MAX_SPEED;
+		}if(carSpeed < -MAX_SPEED) {
+			carSpeed = -MAX_SPEED;
 		}
 
-		Pos += Vel * deltaT;
+		Pos += carSpeed * carDirection * deltaT;
 
 		//aggiorno la posizione se non collide con questo collider
 		ColliderQuad col;
@@ -940,20 +950,22 @@ class MeshLoader : public BaseProject {
 		   CollisionQuad(col, colObstacle[3]) ||
 		   CollisionQuad(col, colObstacle[4]))
 		{
-			Pos -= Vel * deltaT;
-			Vel = glm::vec3(0.0f);
+			Pos -= carSpeed * carDirection * deltaT;
+			carSpeed = 0.0f;
 		}
 
 		//aggiorno la velocità con l'attrito
 		decayFactor = FRICTION * deltaT;
-		if (glm::length(Vel) > decayFactor) {
-			Vel = glm::normalize(Vel) * (glm::length(Vel) - decayFactor);
-		} else {
-			Vel = glm::vec3(0.0f);
+		if(carSpeed > decayFactor) {
+			carSpeed = carSpeed - decayFactor;
+		} if(carSpeed < -decayFactor) {
+			carSpeed = carSpeed + decayFactor;
+		} if(carSpeed < decayFactor && carSpeed > -decayFactor) {
+			carSpeed = 0.0f;
 		}
 		
 		//aggiorno la posizione e la direzione della macchina
-		carYaw -= -m.z * (glm::length(Vel) / turningRadius) * 0.02  ;// * deltaT
+		carYaw -= direction * (carSpeed / turningRadius) * 0.02  ;
 
 		//rotazione iniziale
 		initialRotation = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0, -1, 0));
@@ -1211,7 +1223,7 @@ class MeshLoader : public BaseProject {
 		steeringAngle = 0.0f;
 
 		Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
-		Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+		carSpeed = 0.0f;
 
 		//HAIR MOVEMENT PARAMETERS
 		hairRotation = 0.0f;
@@ -1253,6 +1265,7 @@ class MeshLoader : public BaseProject {
 
 		if(win == 1){
 			currScene = 3;
+			initializeGlobalVariables();
 			RebuildPipeline();
 		}
 	}
