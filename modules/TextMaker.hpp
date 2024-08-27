@@ -6,7 +6,7 @@ enum TextAlignment
 
 struct SingleText {
 	int usedLines;
-	const char *l[6];
+	const char *l[7];
 	int start;
 	int len;
 	int scene;
@@ -115,14 +115,14 @@ struct TextMaker {
 		}
 		std::cout << "Total characters: " << totLen << "\n";
 		
-		M.indices.resize(6 * totLen);
+		M.indices.resize(7 * totLen);
 		
 		int FontId = 1;
 		
 		float PtoTsx = 2.0/800.0;
 		float PtoTsy = 2.0/600.0;
 		//todo
-		float PtoTdx[6] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 ,-0.95};
+		float PtoTdx[7] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 ,-0.95, -0.95};
 		/*for (auto& Txt : *Texts) {
 			
 			break;

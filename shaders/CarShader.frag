@@ -200,12 +200,14 @@ void main() {
 
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
+    /*DA RIMETTERE TODO
     for(int j = 4; j < NLIGHTS; j++){
                 lightDir = light_dir(fragPos, j, 1);
                 lightColor = light_color(fragPos, j, 1);
 
                 RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
     }
+    */
 
 	vec3 Ambient = texture(tex, fragUV).rgb * 0.025f;
 	/*const vec3 cxp = vec3(1.0,1.0,1.0) * 0.025f;

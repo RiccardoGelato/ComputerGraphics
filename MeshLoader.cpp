@@ -89,9 +89,9 @@ const char* bdrfState[2] = { "Blinn", "Toon" };
 const char* bdrf = bdrfState[0];
 
 std::vector<SingleText> outText = {
-	{2, {"Press Space To Start", "", "", "", "", ""}, 0, 0, 0},
-	{1, {"Press Space To See Commands","","", "","", ""}, 0, 0, 1},
-	{6, {"HeadLights: 1","BDRF: 2","Clouds: 3", "ChangeTexture: 4","ChangeCamera: P",  "Restart: Space"}, 0, 0, 2},
+	{2, {"Press Space To Start", "", "", "", "", "", ""}, 0, 0, 0},
+	{1, {"Press Space To See Commands","","", "","", "", ""}, 0, 0, 1},
+	{7, {"HeadLights: 1","BDRF: 2","Clouds: 3", "ChangeTexture: 4","ChangeCamera: P",  "Restart: Space", "Reset: R"}, 0, 0, 2},
 };
 
 struct BlinnUniformBufferObject {
@@ -128,7 +128,6 @@ struct GlobalUniformBufferObject {
 struct EmissionUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
-
 struct SunParUniformBufferObject {
 	alignas(4) float sinSun;
 	alignas(4) float isMoon;
@@ -138,13 +137,13 @@ struct SunParUniformBufferObject {
 struct skyBoxUniformBufferObject {
 	alignas(16) glm::mat4 mvpMat;
 };
-
 struct SkyMatParUniformBufferObject {
 	alignas(4)  float Ang;
 	alignas(4)  float ShowCloud;
 	alignas(4)  float sinSun;
 };
 
+//COIN
 struct CoinMatParUniformBufferObject {
 	alignas(4)  float Power;
 	alignas(16) glm::mat4 CoinTaken[NCOINS];
@@ -310,6 +309,10 @@ class MeshLoader : public BaseProject {
 	Texture TMenu;
 	DescriptorSet DSMenu;
 
+	Model MEndScreen;
+	Texture TEndScreen;
+	DescriptorSet DSEndScreen;
+
 	//********************DESCRIPTOR SETS
 	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
@@ -331,9 +334,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 110;//aumento di 2
-		DPSZs.texturesInPool = 154;//aumentato di 3
-		DPSZs.setsInPool = 61;//aumento di 1
+		DPSZs.uniformBlocksInPool = 112;//aumento di 2
+		DPSZs.texturesInPool = 155;//aumentato di 3
+		DPSZs.setsInPool = 62;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -453,6 +456,7 @@ class MeshLoader : public BaseProject {
 		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
 		MCoin.init(this, &VDHair, "models/COIN.mgcg", MGCG);
 		MMenu.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
+		//MEndScreen.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
 		
 		// Create the textures
 		TCar.init(this, "textures/CarTexture.png");
@@ -469,6 +473,7 @@ class MeshLoader : public BaseProject {
 		TCoin.init(this, "textures/COIN_TEXTURE.png");
 		TCoinNorm.init(this, "textures/COIN_NORMAL.png");
 		TMenu.init(this, "textures/Menu_texture.jfif");
+		TEndScreen.init(this, "textures/END_SCREEN.png");
 
 		//INITIALIZE THE SCENE
 		scene.init(this, &VDBlinn, DSLBlinn, PBlinn, "modules/scene.json");
@@ -512,6 +517,7 @@ class MeshLoader : public BaseProject {
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
 		DSCoin.init(this, &DSLCoin, { &TCoin, &TCoinNorm });
 		DSMenu.init(this, &DSLUI, { &TMenu});
+		DSEndScreen.init(this, &DSLUI, { &TEndScreen});
 
 		
 		//scene pipelines and descriptor sets
@@ -528,6 +534,7 @@ class MeshLoader : public BaseProject {
 		PskyBox.cleanup();
 		PUI.cleanup();
 		PCoin.cleanup();
+		
 
 		DSGlobal.cleanup();
 		DSCar.cleanup();
@@ -542,6 +549,7 @@ class MeshLoader : public BaseProject {
 		DSHead.cleanup();
 		DSCoin.cleanup();
 		DSMenu.cleanup();
+		DSEndScreen.cleanup();
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -579,7 +587,10 @@ class MeshLoader : public BaseProject {
 		MCoin.cleanup();
 
 		TMenu.cleanup();
-		MMenu.cleanup();
+		//MMenu.cleanup();
+
+		TEndScreen.cleanup();
+		MEndScreen.cleanup();
 		
 		// Cleanup descriptor set layouts
 		DSLGlobal.cleanup();
@@ -602,11 +613,11 @@ class MeshLoader : public BaseProject {
 		PHair.destroy();
 		PskyBox.destroy();
 		PCoin.destroy();
+		PUI.destroy();
 	}
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
-		if (currScene != 0) {
-		
+		if (currScene != 0 && currScene != 3) {
 			//HAIR
 			PHair.bind(commandBuffer);
 			MHair.bind(commandBuffer);
@@ -670,17 +681,32 @@ class MeshLoader : public BaseProject {
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MCoin.indices.size()), NCOINS, 0, 0, 0);
 			
+			txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
+			
 		}
 		else {
-			PUI.bind(commandBuffer);
-			DSGlobal.bind(commandBuffer, PUI, 0, currentImage);	// The Global Descriptor Set (Set 0)
-			MMenu.bind(commandBuffer);
-			DSMenu.bind(commandBuffer, PUI, 1, currentImage);
-			vkCmdDrawIndexed(commandBuffer,
-				static_cast<uint32_t>(MMenu.indices.size()), 1, 0, 0, 0);
+			if(currScene == 0){//MENU
+				PUI.bind(commandBuffer);
+				DSGlobal.bind(commandBuffer, PUI, 0, currentImage);	// The Global Descriptor Set (Set 0)
+				MMenu.bind(commandBuffer);
+				DSMenu.bind(commandBuffer, PUI, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer,
+					static_cast<uint32_t>(MMenu.indices.size()), 1, 0, 0, 0);
+				
+				txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
+
+			}else{//END SCENE
+				PUI.bind(commandBuffer);
+				DSGlobal.bind(commandBuffer, PUI, 0, currentImage);	// The Global Descriptor Set (Set 0)
+				MMenu.bind(commandBuffer);
+				DSEndScreen.bind(commandBuffer, PUI, 1, currentImage);
+				vkCmdDrawIndexed(commandBuffer,
+					static_cast<uint32_t>(MMenu.indices.size()), 1, 0, 0, 0);
+				
+			}
 		}
 
-		txt.populateCommandBuffer(commandBuffer, currentImage, currScene);
+		
 	}
 
 	void updateUniformBuffer(uint32_t currentImage) {
@@ -773,11 +799,20 @@ class MeshLoader : public BaseProject {
 			if (!debounce) {
 				debounce = true;
 				curDebounce = GLFW_KEY_SPACE;
-				currScene = (currScene + 1) % 3;
-				if (currScene == 0) {
+				
+				//se non sono nella schermata finale lo uso per fare pausa
+				if(currScene != 3){
+					currScene = (currScene + 1) % 3;
+					if (currScene == 0) {
+						currScene = 1;
+					}
+					RebuildPipeline();
+				}else{
+					//se sono nella schermata finale lo uso per ricominciare
+					//glfwSetWindowShouldClose(window, GL_TRUE);
 					currScene = 1;
+					RebuildPipeline();
 				}
-				RebuildPipeline();
 			}
 		}
 		else {
@@ -800,6 +835,23 @@ class MeshLoader : public BaseProject {
 		}
 		else {
 			if ((curDebounce == GLFW_KEY_4) && debounce) {
+				debounce = false;
+				curDebounce = 0;
+			}
+		}
+
+		//RESET CAR POSITION
+		//CHANGING HEADLIGHTS
+		if (glfwGetKey(window, GLFW_KEY_R)) {
+			if (!debounce) {
+				debounce = true;
+				curDebounce = GLFW_KEY_R;
+				Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
+				Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+			}
+		}
+		else {
+			if ((curDebounce == GLFW_KEY_R) && debounce) {
 				debounce = false;
 				curDebounce = 0;
 			}
@@ -1041,7 +1093,6 @@ class MeshLoader : public BaseProject {
         }
 
 		//SKYBOX
-
 		skyBoxUniformBufferObject sbubo{};
 		
 		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
@@ -1125,23 +1176,84 @@ class MeshLoader : public BaseProject {
 		DSCoin.map(currentImage, &uboCoin, 0);
 		DSCoin.map(currentImage, &coinMatParUbo, 3);
 
-		//TEST MENU
+		/* MENU SCREEN ************************************************************************************************ */
 		BlinnUniformBufferObject uboMenu{};
+
 		glm::mat4 projection_matrix = glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1)) * glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+
 		uboMenu.mMat = glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(8, 8, 8));
-		uboMenu.mvpMat = projection_matrix * uboMenu.mMat ; //* glm::mat4(glm::mat3(View));
+		uboMenu.mvpMat = projection_matrix * uboMenu.mMat ;
 		uboMenu.nMat = glm::transpose(glm::inverse(uboMenu.mMat));
 		DSMenu.map(currentImage, &uboMenu, 0);
+
+		/* WIN SCREEN ************************************************************************************************ */
+		BlinnUniformBufferObject uboEndScreen{};
+
+		projection_matrix = glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1)) * glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f);
+
+		uboEndScreen.mMat = glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(8, 8, 8));
+		uboEndScreen.mvpMat = projection_matrix * uboEndScreen.mMat ;
+		uboEndScreen.nMat = glm::transpose(glm::inverse(uboEndScreen.mMat));
+
+		DSEndScreen.map(currentImage, &uboEndScreen, 0);
 	}	
+
+	//INITIALIZE GLOBAL VARIABLES
+	void initializeGlobalVariables(){
+		//CAMERA PARAMETERS
+		Ar;
+		cameraType = 0;
+	
+		//CAR PARAMETERS
+		carYaw = 0.0f;
+		decayFactor = 0.0f;
+		turningRadius = 0.0f;
+		steeringAngle = 0.0f;
+
+		Pos = glm::vec3(-15.0f, 0.0f, 30.0f);
+		Vel = glm::vec3(0.0f, 0.0f, 0.0f);
+
+		//HAIR MOVEMENT PARAMETERS
+		hairRotation = 0.0f;
+		directionHairRot = 1.0f;
+
+		//GamePause
+		gamePaused = 0;
+		//CarTexture
+		carTexture = 0;
+		//Coins
+
+		for(int i = 0; i < NCOINS; i++){
+			coinTaken[i] = 0;
+		}
+	}
 
 	//COIN STATE UPDATE
 	void coinStateUpdate(int instance) {
 
 		if (sqrt(pow(Pos.x - xCoordCoins[instance], 2) + pow(Pos.z - zCoordCoins[instance], 2)) < 2 || coinTaken[instance] == 1) {
 			coinTaken[instance] = 1;
+
+			checkWin();
 		}
 		else {
 			coinTaken[instance] = 0;
+		}
+	}
+
+	//SE HO RACCOLTO TUTTE LE MONETE
+	void checkWin(){
+		int win = 1;
+
+		for(int i = 0; i < NCOINS; i++){
+			if(coinTaken[i] == 0){
+				win = 0;
+			}
+		}
+
+		if(win == 1){
+			currScene = 3;
+			RebuildPipeline();
 		}
 	}
 
@@ -1223,7 +1335,7 @@ class MeshLoader : public BaseProject {
 		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
 
 		//Calcolo la posizione della camera (deve sempre putare al target)
-		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw, glm::vec3(0,1,0)) * 
+		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw - carYaw, glm::vec3(0,1,0)) * 
                                    glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
                                    glm::vec4(0,0,fixedCamDist,1));
 		
