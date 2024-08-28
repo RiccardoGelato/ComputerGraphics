@@ -301,6 +301,10 @@ class MeshLoader : public BaseProject {
 	Texture THead;
 	DescriptorSet DSHead;
 
+	Model MBody;
+	Texture TBody;
+	DescriptorSet DSBody;
+
 	Model MCoin;
 	Texture TCoin, TCoinNorm;
 	DescriptorSet DSCoin;
@@ -334,9 +338,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 112;//aumento di 2
-		DPSZs.texturesInPool = 155;//aumentato di 3
-		DPSZs.setsInPool = 62;//aumento di 1
+		DPSZs.uniformBlocksInPool = 114;//aumento di 2
+		DPSZs.texturesInPool = 158;//aumentato di 3
+		DPSZs.setsInPool = 63;//aumento di 1
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -454,6 +458,7 @@ class MeshLoader : public BaseProject {
 		MskyBox.init(this, &VDEmission, "models/SkyBoxCube.obj", OBJ);
 		MHair.init(this, &VDHair, "models/Hair.gltf", GLTF);
 		MHead.init(this, &VDBlinn, "models/HEAD.mgcg", MGCG);
+		MBody.init(this, &VDBlinn, "models/BODY.mgcg", MGCG);
 		MCoin.init(this, &VDHair, "models/COIN.mgcg", MGCG);
 		MMenu.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
 		//MEndScreen.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
@@ -470,6 +475,7 @@ class MeshLoader : public BaseProject {
 		THair1.init(this, "textures/HAIR1.jpg");
 		THair2.init(this, "textures/HAIR2.jpg");
 		THead.init(this, "textures/HEAD.png");
+		TBody.init(this, "textures/BODY.png");
 		TCoin.init(this, "textures/COIN_TEXTURE.png");
 		TCoinNorm.init(this, "textures/COIN_NORMAL.png");
 		TMenu.init(this, "textures/Menu_texture.jfif");
@@ -515,9 +521,11 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.init(this, &DSLskyBoxPar, {});
 		DSHair.init(this, &DSLHair, {&THair1, &THair2});
 		DSHead.init(this, &DSLBlinn, {&THead, &THead, &THead});
+		DSBody.init(this, &DSLBlinn, {&TBody, &TBody, &TBody});
 		DSCoin.init(this, &DSLCoin, { &TCoin, &TCoinNorm });
 		DSMenu.init(this, &DSLUI, { &TMenu});
 		DSEndScreen.init(this, &DSLUI, { &TEndScreen});
+
 
 		
 		//scene pipelines and descriptor sets
@@ -547,9 +555,11 @@ class MeshLoader : public BaseProject {
 		DSskyBoxPar.cleanup();
 		DSHair.cleanup();
 		DSHead.cleanup();
+		DSBody.cleanup();
 		DSCoin.cleanup();
 		DSMenu.cleanup();
 		DSEndScreen.cleanup();
+
 		
 		//SCENE CLEANUP
 		scene.pipelinesAndDescriptorSetsCleanup();
@@ -581,6 +591,9 @@ class MeshLoader : public BaseProject {
 
 		THead.cleanup();
 		MHead.cleanup();
+
+		TBody.cleanup();
+		MBody.cleanup();
 
 		TCoin.cleanup();
 		TCoinNorm.cleanup();
@@ -650,7 +663,6 @@ class MeshLoader : public BaseProject {
 				static_cast<uint32_t>(MskyBox.indices.size()), 1, 0, 0, 0);
 
 			//mainscene
-
 			PBlinn.bind(commandBuffer);
 			Mship.bind(commandBuffer);
 			DSGlobal.bind(commandBuffer, PBlinn, 0, currentImage);	// The Global Descriptor Set (Set 0)
@@ -669,6 +681,12 @@ class MeshLoader : public BaseProject {
 			DSHead.bind(commandBuffer, PBlinn, 1, currentImage);
 			vkCmdDrawIndexed(commandBuffer,
 				static_cast<uint32_t>(MHead.indices.size()), 1, 0, 0, 0);
+
+			//body
+			MBody.bind(commandBuffer);
+			DSBody.bind(commandBuffer, PBlinn, 1, currentImage);
+			vkCmdDrawIndexed(commandBuffer,
+				static_cast<uint32_t>(MBody.indices.size()), 1, 0, 0, 0);
 
 			//POPULATE SCENE
 			scene.populateCommandBuffer(commandBuffer, currentImage, PBlinn, DSGlobal);
@@ -1121,9 +1139,10 @@ class MeshLoader : public BaseProject {
 		sbparubo.sinSun = sin(cTime * angTurnTimeFact);
 		DSskyBoxPar.map(currentImage, &sbparubo, 0);
     
-		//* HAIR - HEAD POSITION ********************************************************************************************* */
+		//* HAIR - HEAD - BODY POSITION ********************************************************************************************* */
 		BlinnUniformBufferObject uboHair{};
 		BlinnUniformBufferObject uboHead{};
+		BlinnUniformBufferObject uboBody{};
 		BlinnMatParUniformBufferObject headMatParUbo{};
 
 		float forwardOffset = -0.45f;	//offset rispetto al centro dell'auto
@@ -1147,7 +1166,7 @@ class MeshLoader : public BaseProject {
 		//apply rotation of the car
 		glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
 		//apply rotation of the hair that moves + position of the head
-		glm::mat4 passengerMat = glm::translate(glm::mat4(1), passengerPos) * rotationMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));;
+		glm::mat4 passengerMat = glm::translate(glm::mat4(1), passengerPos) * rotationMat * glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));
 
 
 		uboHair.mMat = glm::scale(passengerMat, glm::vec3(0.005,0.005,0.005));//scale to 0.05 because the asset is huge
@@ -1166,6 +1185,17 @@ class MeshLoader : public BaseProject {
 
 		DSHead.map(currentImage, &uboHead, 0);
 		DSHead.map(currentImage, &headMatParUbo, 2);
+
+		passengerPos = Pos + carDirection * (forwardOffset + 0.06f)
+								  + glm::vec3(0, upwardOffset - 0.52f, 0) 
+								  + glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffset;
+
+		uboBody.mMat = glm::scale(glm::translate(glm::mat4(1), passengerPos) * rotationMat, glm::vec3(4,5,4));
+		uboBody.mvpMat = View * uboBody.mMat;
+		uboBody.nMat = glm::transpose(glm::inverse(uboBody.mMat));
+
+		DSBody.map(currentImage, &uboBody, 0);
+		DSBody.map(currentImage, &headMatParUbo, 2);
 
 
 		//TEST COIN
