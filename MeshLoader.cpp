@@ -6,14 +6,6 @@
 #include "modules/Scene.hpp"
 #include "modules/TextMaker.hpp"
 
-// The uniform buffer objects data structures
-// Remember to use the correct alignas(...) value
-//        float : alignas(4)
-//        vec2  : alignas(8)
-//        vec3  : alignas(16)
-//        vec4  : alignas(16)
-//        mat3  : alignas(16)
-//        mat4  : alignas(16)
 
 //COLLIDER
 struct ColliderQuad{
@@ -275,8 +267,6 @@ class MeshLoader : public BaseProject {
 	Pipeline PUI;
 	Pipeline PCoin;
 
-	// Models, textures and Descriptors (values assigned to the uniforms)
-	// Please note that Model objects depends on the corresponding vertex structure
 	//********************MODELS
 	Model MCar;
 	Model Mship;
@@ -461,7 +451,6 @@ class MeshLoader : public BaseProject {
 		MBody.init(this, &VDBlinn, "models/BODY.mgcg", MGCG);
 		MCoin.init(this, &VDHair, "models/COIN.mgcg", MGCG);
 		MMenu.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
-		//MEndScreen.init(this, &VDBlinn, "models/QUAD.obj", OBJ);
 		
 		// Create the textures
 		TCar.init(this, "textures/CarTexture.png");
@@ -884,8 +873,6 @@ class MeshLoader : public BaseProject {
 		if (currScene == 2) {
 			deltaT = 0;
 		}
-		
-
 			
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){
@@ -1023,7 +1010,7 @@ class MeshLoader : public BaseProject {
 		float lateralOffsetHeadLight2 = -0.25f;
 	
 
-		//SUN
+		/* SUN ******************************************************************************************** */
 		gubo.lightDir[0] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
 		glm::vec4 sunColor;
 		sunColor = glm::vec4(0.5 + 0.5 * sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 1.0);
@@ -1034,7 +1021,7 @@ class MeshLoader : public BaseProject {
 
 		gubo.eyePos = glm::vec3(glm::inverse(ModelView) * glm::vec4(0, 0, 0, 1));
 
-		//HEADLIGHTS
+		/* HEADLIGHTS ******************************************************************************************** */
 		gubo.lightDir[1] = carDirection;
 		gubo.lightColor[1] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.lightPos[1] = Pos + carDirection * forwardOffsetHeadLight
@@ -1046,7 +1033,7 @@ class MeshLoader : public BaseProject {
 			+ glm::vec3(0, upwardOffsetHeadLight, 0)
 			+ glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffsetHeadLight2;
 
-		//MOON
+		/* MOON ******************************************************************************************** */
 		gubo.lightDir[3] = glm::vec3(-cos(cTime * angTurnTimeFact), -sin(cTime * angTurnTimeFact), 0);
 		glm::vec4 moonColor;
 		moonColor = glm::vec4(0.0, 0.0, -sin(cTime * angTurnTimeFact) * 0.8 , 1.0);
@@ -1063,18 +1050,6 @@ class MeshLoader : public BaseProject {
 			gubo.lightPos[i+4] = streetLampsPositions[i];
 		}
 
-		/*gubo.lightDir[4] = carDirection;
-		gubo.lightColor[4] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.lightPos[4] = glm::vec3(15.3, 4.5, 25.5);
-
-		gubo.lightDir[5] = carDirection;
-		gubo.lightColor[5] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.lightPos[5] = glm::vec3(0.3, 4.5, 25.5);
-
-		gubo.lightDir[6] = carDirection;
-		gubo.lightColor[6] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-		gubo.lightPos[6] = glm::vec3(-29.7, 4.5, 25.5);*/
-
 		gubo.cosIn = 0.96;
 		gubo.cosOut = 0.86;
 		gubo.lightOn = lightOn;
@@ -1082,7 +1057,7 @@ class MeshLoader : public BaseProject {
 
 		DSGlobal.map(currentImage, &gubo, 0);
 
-		//SUNPARAMETERS
+		/* SUNPARAMETERS ******************************************************************************************** */
 
 		EmissionUniformBufferObject emissionUbo{};
 		emissionUbo.mvpMat = View * glm::translate(glm::mat4(1), gubo.lightDir[0] * 500.0f) * glm::scale(glm::mat4(1), glm::vec3(20, 20, 20)) * baseTr;
@@ -1102,7 +1077,7 @@ class MeshLoader : public BaseProject {
 		moonParUbo.isMoon = 0.0;
 		DSmoonPar.map(currentImage, &moonParUbo, 0);
 
-		/* SCENE POSITION ******************************************************************************************** */
+		/* SCENE POSITION ************************************************************************************************* */
 		int i = 0;
 		for(const auto& instance : scene.instancesParsed) {
             BlinnUniformBufferObject uboScene{};
@@ -1122,14 +1097,15 @@ class MeshLoader : public BaseProject {
 			i++;
         }
 
-		//SKYBOX
+		/* SKYBOX ********************************************************************************************************* */
 		skyBoxUniformBufferObject sbubo{};
 		
 		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
 
 		//cambio la direzione dello yaw della camera e lo metto insieme alla rotazione della camera
-		sbubo.mvpMat = M * reverseRotation * glm::mat4(glm::mat3(View))  ;
-		
+		//sbubo.mvpMat = M * reverseRotation * glm::mat4(glm::mat3(View));
+		sbubo.mvpMat = cameraType == 2 ? glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1)) * glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f) 
+									   : M * reverseRotation * glm::mat4(glm::mat3(View));
 		//sbubo.mvpMat = glm::scale(M, glm::vec3(-1, 1, 1)) * glm::mat4(glm::mat3(View));
 		DSskyBox.map(currentImage, &sbubo, 0);
 
@@ -1139,7 +1115,7 @@ class MeshLoader : public BaseProject {
 		sbparubo.sinSun = sin(cTime * angTurnTimeFact);
 		DSskyBoxPar.map(currentImage, &sbparubo, 0);
     
-		//* HAIR - HEAD - BODY POSITION ********************************************************************************************* */
+		//* HAIR - HEAD - BODY POSITION *********************************************************************************** */
 		BlinnUniformBufferObject uboHair{};
 		BlinnUniformBufferObject uboHead{};
 		BlinnUniformBufferObject uboBody{};
@@ -1210,7 +1186,7 @@ class MeshLoader : public BaseProject {
 		DSBody.map(currentImage, &headMatParUbo, 2);
 
 
-		//TEST COIN
+		/* COIN ******************************************************************************************************** */
 		CoinBlinnUniformBufferObject uboCoin{};
 		CoinMatParUniformBufferObject coinMatParUbo{};
 
