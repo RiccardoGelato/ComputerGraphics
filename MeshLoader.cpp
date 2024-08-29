@@ -224,7 +224,7 @@ class MeshLoader : public BaseProject {
 
 	//HAIR MOVEMENT PARAMETERS
 		const float ROT_SPEED_HAIR = glm::radians(15.0f);
-		const float MAX_HAIR_ROTATION = glm::radians(45.0f);
+		const float MAX_HAIR_ROTATION = glm::radians(90.0f);
 		float hairRotation = 0.0f;
 		float directionHairRot = 1.0f;
 
@@ -1164,19 +1164,19 @@ class MeshLoader : public BaseProject {
 								  + glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffset;
 
 		// Apply rotation of the car
-		glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0f), -carYaw, glm::vec3(0, 1, 0));
+		glm::mat4 rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) - carYaw, glm::vec3(0, 1, 0));
 
 		// Calculate the center of rotation
-		glm::vec3 centerOfRotation = passengerPos + carDirection * 0.01f;
+		glm::vec3 centerOfRotation = passengerPos + carDirection * 0.05f;
 
 		// Apply translation to move the head to the center of rotation
 		glm::mat4 translationToCenter = glm::translate(glm::mat4(1.0f), centerOfRotation);
 
 		// Apply the rotation to simulate the orbit
-		glm::mat4 orbitRotation = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f) + hairRotation, glm::vec3(0, 1, 0));
+		glm::mat4 orbitRotation = glm::rotate(glm::mat4(1.0f), hairRotation, glm::vec3(0, 1, 0));
 
 		// Apply translation to move the head back to its original position
-		glm::mat4 translationBack = glm::translate(glm::mat4(1.0f), -carDirection * 0.01f);
+		glm::mat4 translationBack = glm::translate(glm::mat4(1.0f), -carDirection * 0.05f);
 
 		// Combine the transformations
 		glm::mat4 passengerMat = translationToCenter * orbitRotation * translationBack * rotationMat;
