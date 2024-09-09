@@ -196,7 +196,7 @@ void main() {
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
     
-    for(int j = 4; j < 16; j++){
+    for(int j = 4; j < NLIGHTS; j++){
                 lightDir = light_dir(fragPos, j, 1);
                 lightColor = light_color(fragPos, j, 1);
 
