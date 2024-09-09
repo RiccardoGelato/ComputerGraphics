@@ -1,7 +1,6 @@
 // This has been adapted from the Vulkan tutorial
 #define GLM_ENABLE_EXPERIMENTAL
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define NSHIP 16
 #include "Starter.hpp"
 #include "modules/Scene.hpp"
 #include "modules/TextMaker.hpp"
@@ -23,62 +22,10 @@ struct ColliderQuad{
 
 
 
-void MakeCylinder(float radius, float height, int slices, std::vector<std::array<float, 6>>& vertices, std::vector<uint32_t>& indices) {
-
-	vertices.resize(4 * slices + 2);
-	indices.resize(3 * 4 * slices);
-	vertices[4 * slices] = { 0.0f,height / 2.0f,0.0f, 0, 1, 0 };
-	vertices[4 * slices + 1] = { 0.0f,-height / 2.0f,0.0f, 0, -1, 0 };
-	for (int i = 0; i < slices; i++) {
-		float ang = 2 * M_PI * (float)i / (float)slices;
-		vertices[i] = { radius * cos(ang), height / 2.0f, radius * sin(ang), 0, 1, 0 };
-		indices[3 * i] = 4 * slices;
-		indices[3 * i + 2] = i;
-		indices[3 * i + 1] = (i + 1) % slices;
-	}
-
-	for (int i = 0; i < slices; i++) {
-		float ang = 2 * M_PI * (float)i / (float)slices;
-		vertices[slices + i] = { radius * cos(ang), -height / 2.0f, radius * sin(ang), 0, -1, 0 };
-		indices[3 * slices + 3 * i] = 4 * slices + 1;
-		indices[3 * slices + 3 * i + 1] = slices + i;
-		indices[3 * slices + 3 * i + 2] = slices + (i + 1) % slices;
-	}
-
-	for (int i = 0; i < slices; i++) {
-		float ang = 2 * M_PI * (float)i / (float)slices;
-		vertices[2 * slices + i] = { radius * cos(ang), height / 2.0f, radius * sin(ang), cos(ang), 0, sin(ang) };
-	}
-
-	for (int i = 0; i < slices; i++) {
-		float ang = 2 * M_PI * (float)i / (float)slices;
-		vertices[3 * slices + i] = { radius * cos(ang), -height / 2.0f, radius * sin(ang), cos(ang), 0, sin(ang) };
-	}
-
-	for (int i = 0; i < slices; i++) {
-
-		indices[2 * 3 * slices + 2 * 3 * i] = 2 * slices + i;
-		indices[2 * 3 * slices + 2 * 3 * i + 1] = 2 * slices + (i + 1) % slices;
-		indices[2 * 3 * slices + 2 * 3 * i + 2] = 2 * slices + slices + i;
-		indices[2 * 3 * slices + 2 * 3 * i + 3] = 2 * slices + slices + i;
-		indices[2 * 3 * slices + 2 * 3 * i + 4] = 2 * slices + (i + 1) % slices;
-		indices[2 * 3 * slices + 2 * 3 * i + 5] = 2 * slices + slices + (i + 1) % slices;
-
-	}
-}
-
-
 /********************Uniform Blocks********************/
 //UNIFORM BUFFER - BLINN -
 #define NLIGHTS 28
 #define NCOINS 10
-
-//TextAlignment alignment = Menu;
-
-const char* cloudState[2] = { "ON", "OFF" };
-const char* headlightState[2] = { "ON", "OFF" };
-const char* bdrfState[2] = { "Blinn", "Toon" };
-const char* bdrf = bdrfState[0];
 
 std::vector<SingleText> outText = {
 	{2, {"Press Space To Start", "", "", "", "", "", ""}, 0, 0, 0},
@@ -172,7 +119,7 @@ class MeshLoader : public BaseProject {
 		int currScene = 0;
 
 	//SYSTEM PARAMETERS
-		bool debounce = false;	//avoid multiple key press
+		bool debounce = false;
 		int curDebounce = 0;
 		SceneProject scene;
 		ColliderQuad colObstacle[5];
@@ -240,16 +187,16 @@ class MeshLoader : public BaseProject {
 			
 	//MATRICES
 		glm::mat4 ModelView;
-		glm::mat4 View;
+		glm::mat4 View;	//view projection matrix
 		glm::mat4 baseTr = glm::mat4(1);
 
 	//********************DESCRIPTOR SET LAYOUT ["classes" of what will be passed to the shaders]
 	DescriptorSetLayout DSLGlobal;
-	DescriptorSetLayout DSLBlinn;	// For Blinn Objects
+	DescriptorSetLayout DSLBlinn;
 	DescriptorSetLayout DSLEmission;
 	DescriptorSetLayout DSLSunPar;
-	DescriptorSetLayout DSLskyBox;	// For skyBox
-	DescriptorSetLayout DSLskyBoxPar; // For skyBox parameters
+	DescriptorSetLayout DSLskyBox;	
+	DescriptorSetLayout DSLskyBoxPar; 
 	DescriptorSetLayout DSLHair;	
 	DescriptorSetLayout DSLUI;
 	DescriptorSetLayout DSLCoin;
@@ -269,7 +216,12 @@ class MeshLoader : public BaseProject {
 
 	//********************MODELS
 	Model MCar;
+	Texture TCar, TCar2, TCar3;
+	DescriptorSet DSCar;
+
 	Model Mship;
+	Texture Tship;
+	DescriptorSet DSship;
 
 	Model Msun;
 	Texture Tsun;
@@ -307,20 +259,13 @@ class MeshLoader : public BaseProject {
 	Texture TEndScreen;
 	DescriptorSet DSEndScreen;
 
-	//********************DESCRIPTOR SETS
-	DescriptorSet DSCar;
 	DescriptorSet DSGlobal;
-	DescriptorSet DSship;
-
-	//********************TEXTURES
-	Texture TCar, TCar2, TCar3;
-	Texture Tship;
-
+	
 	TextMaker txt;
-	//TextMaker txt2;
+
 
 	void setWindowParameters() {
-		// window size, titile and initial background
+		// window size, title and initial background
 		windowWidth = 800;
 		windowHeight = 600;
 		windowTitle = "Mesh Loader";
@@ -328,9 +273,9 @@ class MeshLoader : public BaseProject {
 		initialBackgroundColor = {0.0f, 0.005f, 0.0f, 1.0f};
 		
 		// Descriptor pool sizes
-		DPSZs.uniformBlocksInPool = 114;//aumento di 2
-		DPSZs.texturesInPool = 158;//aumentato di 3
-		DPSZs.setsInPool = 63;//aumento di 1
+		DPSZs.uniformBlocksInPool = 114;
+		DPSZs.texturesInPool = 158;
+		DPSZs.setsInPool = 63;
 		
 		Ar = (float)windowWidth / (float)windowHeight;
 	}
@@ -407,7 +352,6 @@ class MeshLoader : public BaseProject {
 			{0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(BlinnVertex, UV),
 					sizeof(glm::vec2), UV}
 		});
-		
 
 		VDEmission.init(this, {
 			{0, sizeof(EmissionVertex), VK_VERTEX_INPUT_RATE_VERTEX}
@@ -439,6 +383,7 @@ class MeshLoader : public BaseProject {
 		PskyBox.setAdvancedFeatures(VK_COMPARE_OP_LESS_OR_EQUAL, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, false);
 		PUI.init(this, &VDBlinn, "shaders/CarVert.spv", "shaders/UIFrag.spv", { &DSLGlobal, &DSLUI });
 		PCoin.init(this, &VDHair, "shaders/NormalMapVert.spv", "shaders/NormalMapFrag.spv", { &DSLGlobal, &DSLCoin });
+		PCoin.setAdvancedFeatures(VK_COMPARE_OP_LESS, VK_POLYGON_MODE_FILL, VK_CULL_MODE_BACK_BIT, true);
 
 		// Create models		
 		MCar.init(this, &VDBlinn, "Models/Car.mgcg", MGCG);
@@ -479,6 +424,7 @@ class MeshLoader : public BaseProject {
 		//INITIALIZE THE COLLIDERS
 		InitializeColliders();
 		
+		//INITIALIZE THE STREET LAMPS POSITIONS
 		int count = 0;
 		for (const auto& instanceData : scene.instancesParsedCopy) {
 			if (instanceData.second.model == "M_strada_dritta" && instanceData.second.transform[0][0] == 1 && instanceData.second.transform[1][1] == 1 && instanceData.second.transform[2][2] == 1) {
@@ -589,7 +535,7 @@ class MeshLoader : public BaseProject {
 		MCoin.cleanup();
 
 		TMenu.cleanup();
-		//MMenu.cleanup();
+		MMenu.cleanup();
 
 		TEndScreen.cleanup();
 		MEndScreen.cleanup();
@@ -620,6 +566,7 @@ class MeshLoader : public BaseProject {
 	
 	void populateCommandBuffer(VkCommandBuffer commandBuffer, int currentImage) {
 		if (currScene != 0 && currScene != 3) {
+
 			//HAIR
 			PHair.bind(commandBuffer);
 			MHair.bind(commandBuffer);
@@ -732,6 +679,7 @@ class MeshLoader : public BaseProject {
 		static glm::vec3 dampedCamPos = CamPos;
 		static float camYaw = glm::radians(45.0f);
     	static float camPitch = glm::radians(30.0f);
+		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
 
 		//CONSTANT CAMERA PARAMETERS
 		const float fixedCamDist = 10.0f;
@@ -848,7 +796,6 @@ class MeshLoader : public BaseProject {
 		}
 
 		//RESET CAR POSITION
-		//CHANGING HEADLIGHTS
 		if (glfwGetKey(window, GLFW_KEY_R)) {
 			if (!debounce) {
 				debounce = true;
@@ -922,6 +869,7 @@ class MeshLoader : public BaseProject {
 
 		//angolo di sterzata
 		int direction = 1;
+
 		if(carSpeed < 0 ){
 			direction = -1;
 		}
@@ -996,7 +944,6 @@ class MeshLoader : public BaseProject {
 		blinnUbo.nMat = glm::mat4(1);
 		DSship.map(currentImage, &blinnUbo, 0);
 
-		blinnMatParUbo.Power = 200.0;
 		blinnMatParUbo.Power = 0.0;
 		DSship.map(currentImage, &blinnMatParUbo, 2);
 
@@ -1012,8 +959,10 @@ class MeshLoader : public BaseProject {
 
 		/* SUN ******************************************************************************************** */
 		gubo.lightDir[0] = glm::vec3(cos(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 0);
+
 		glm::vec4 sunColor;
 		sunColor = glm::vec4(0.5 + 0.5 * sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), sin(cTime * angTurnTimeFact), 1.0);
+		
 		if (sunColor.y < 0) {
 			sunColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		}
@@ -1027,6 +976,7 @@ class MeshLoader : public BaseProject {
 		gubo.lightPos[1] = Pos + carDirection * forwardOffsetHeadLight
 			+ glm::vec3(0, upwardOffsetHeadLight, 0)
 			+ glm::normalize(glm::cross(carDirection, glm::vec3(0, 1, 0))) * lateralOffsetHeadLight;
+
 		gubo.lightDir[2] = carDirection;
 		gubo.lightColor[2] = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 		gubo.lightPos[2] = Pos + carDirection * forwardOffsetHeadLight
@@ -1035,14 +985,18 @@ class MeshLoader : public BaseProject {
 
 		/* MOON ******************************************************************************************** */
 		gubo.lightDir[3] = glm::vec3(-cos(cTime * angTurnTimeFact), -sin(cTime * angTurnTimeFact), 0);
+
 		glm::vec4 moonColor;
 		moonColor = glm::vec4(0.0, 0.0, -sin(cTime * angTurnTimeFact) * 0.8 , 1.0);
+
 		if (moonColor.z < 0) {
 			moonColor = glm::vec4(0.0, 0.0, 0.0, 1.0);
 		}
+
 		gubo.lightColor[3] = moonColor;
 		gubo.lightPos[3] = Pos;
 
+		//street lamp lights
 		for (int i = 0; i < NLIGHTS-4; i++)
 		{
 			gubo.lightDir[i+4] = carDirection;
@@ -1100,13 +1054,9 @@ class MeshLoader : public BaseProject {
 		/* SKYBOX ********************************************************************************************************* */
 		skyBoxUniformBufferObject sbubo{};
 		
-		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
-
-		//cambio la direzione dello yaw della camera e lo metto insieme alla rotazione della camera
-		//sbubo.mvpMat = M * reverseRotation * glm::mat4(glm::mat3(View));
+		
 		sbubo.mvpMat = cameraType == 2 ? glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1)) * glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -1.0f, 1.0f) 
 									   : M * reverseRotation * glm::mat4(glm::mat3(View));
-		//sbubo.mvpMat = glm::scale(M, glm::vec3(-1, 1, 1)) * glm::mat4(glm::mat3(View));
 		DSskyBox.map(currentImage, &sbubo, 0);
 
 		SkyMatParUniformBufferObject sbparubo{};
@@ -1122,7 +1072,7 @@ class MeshLoader : public BaseProject {
 		BlinnMatParUniformBufferObject headMatParUbo{};
 
 		float forwardOffset = -0.45f;	//offset rispetto al centro dell'auto
-		float upwardOffset = 0.75f;	//altezza della camera
+		float upwardOffset = 0.75f;		//altezza della camera
 		float lateralOffset = -0.25f; 
 
 		//rotation of the hair so that the head look at the beautiful view
@@ -1190,9 +1140,11 @@ class MeshLoader : public BaseProject {
 		CoinBlinnUniformBufferObject uboCoin{};
 		CoinMatParUniformBufferObject coinMatParUbo{};
 
+		glm::mat4 DefaultCoinMMat = glm::rotate(glm::mat4(1.0), glm::radians(cTime * 100), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(0.02, 0.02, 0.02));
+
 		for (int i = 0; i < NCOINS; i++)
 		{
-			uboCoin.mMat[i] = glm::translate(glm::mat4(1), glm::vec3(xCoordCoins[i], 1 + 0.3 * sin(cTime * 2), zCoordCoins[i])) * glm::rotate(glm::mat4(1.0), glm::radians(cTime * 100), glm::vec3(0, 1, 0)) * glm::rotate(glm::mat4(1.0), glm::radians(90.0f), glm::vec3(1, 0, 0)) * glm::scale(glm::mat4(1.0), glm::vec3(0.02, 0.02, 0.02));
+			uboCoin.mMat[i] = glm::translate(glm::mat4(1), glm::vec3(xCoordCoins[i], 1 + 0.3 * sin(cTime * 2), zCoordCoins[i])) * DefaultCoinMMat;
 			uboCoin.mvpMat[i] = View * uboCoin.mMat[i];
 			uboCoin.nMat[i] = glm::transpose(glm::inverse(uboCoin.mMat[i]));
 
@@ -1288,17 +1240,6 @@ class MeshLoader : public BaseProject {
 		}
 	}
 
-	//MOVE THE CAR
-	glm::mat4 MoveCar(glm::vec3 Pos, float Yaw) {
-		glm::mat4 M = glm::mat4(1.0f);
-
-		glm::mat4 MT = glm::translate(glm::mat4(1.0f), glm::vec3(Pos[0], 0, Pos[2]));
-		glm::mat4 MYaw = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0, 1, 0));
-		glm::mat4 MS = glm::scale(glm::mat4(1.0f), glm::vec3(1, 1, 1));
-		M = MT * MYaw * MS;
-
-		return MT;
-	}
 
 	//LOOK AT PROJECTION MATRIX
 	glm::mat4 MakeViewProjectionLookAt(glm::vec3 Pos, glm::vec3 Target, glm::vec3 Up, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
@@ -1333,24 +1274,6 @@ class MeshLoader : public BaseProject {
 		return M;
 	}
 
-	//LOOK IN DIRECTION MATRIX
-	glm::mat4 MakeIsometricViewProjectionLookAt(glm::vec3 Pos, float Yaw, float Pitch, float Roll, float FOVy, float Ar, float nearPlane, float farPlane) {
-
-		glm::mat4 M = glm::mat4(1.0f);
-
-		M = glm::perspective(FOVy, Ar, nearPlane, farPlane);
-
-		glm::mat4 MT = glm::translate(glm::mat4(1.0f), glm::vec3(-Pos[0], -Pos[1], -Pos[2]));
-		glm::mat4 MYaw = glm::rotate(glm::mat4(1.0f), Yaw, glm::vec3(0, -1, 0));
-		glm::mat4 MPitch = glm::rotate(glm::mat4(1.0f), Pitch, glm::vec3(-1, 0, 0));
-		glm::mat4 MRoll = glm::rotate(glm::mat4(1.0f), Roll, glm::vec3(0, 0, -1));
-		glm::mat4 MS = glm::scale(glm::mat4(1.0), glm::vec3(1, -1, 1));
-
-		M = M * MS * MRoll * MPitch * MYaw * MT;
-
-		return M;
-	}
-
 	//CAMERA LOOK AT FUNCTION
 	glm::mat4 LookAt(glm::vec3 Pos, glm::vec3 r, float deltaT) {
 
@@ -1365,7 +1288,7 @@ class MeshLoader : public BaseProject {
 		camPitch += r.x * ROT_SPEED_CAMERA * deltaT;
 		camPitch = glm::clamp(camPitch, glm::radians(-89.0f), glm::radians(89.0f)); //evito che gli assi si sovrappongano
 
-		//Calcolo la posizione della camera (deve sempre putare al target)
+		//Calcolo la posizione della camera (deve sempre puntare al target)
 		CamPos = CamTarget + glm::vec3(glm::rotate(glm::mat4(1), camYaw - carYaw, glm::vec3(0,1,0)) * 
                                    glm::rotate(glm::mat4(1), -camPitch, glm::vec3(1,0,0)) * 
                                    glm::vec4(0,0,fixedCamDist,1));
@@ -1408,55 +1331,6 @@ class MeshLoader : public BaseProject {
 		
 		//Creo la matrice di view e projection
 		return MakeViewProjectionLookInDirection(CamPos, camYaw - carYaw, camPitch, 0.0f, FOVy, Ar, nearPlane, farPlane); //using carYaw with camYaw to maintain the relative angle of the camera
-	}
-	
-	//CREATE THE FLOOR
-	void MakeFloor(float size, std::vector<std::array<float,6>> &vertices, std::vector<uint32_t> &indices) {
-
-		vertices = {
-					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
-					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
-					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 1, 0},
-					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 1, 0},
-
-					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
-					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
-					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, -1, 0},
-					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, -1, 0},
-
-					{-size / 2.0f, size / 2.0f,-size / 2.0f, -1, 0, 0},
-					{-size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
-
-					{-size / 2.0f, size / 2.0f, size / 2.0f, -1, 0, 0},
-					{-size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
-
-					{ size / 2.0f, size / 2.0f,-size / 2.0f, 1, 0, 0},
-					{ size / 2.0f, size / 2.0f,-size / 2.0f, 0, 0, -1},
-
-					{ size / 2.0f, size / 2.0f, size / 2.0f, 1, 0, 0},
-					{ size / 2.0f, size / 2.0f, size / 2.0f, 0, 0, 1},
-
-					{-size / 2.0f, -size / 2.0f,-size / 2.0f, -1, 0, 0},
-					{-size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
-
-					{-size / 2.0f, -size / 2.0f, size / 2.0f, -1, 0, 0},
-					{-size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
-
-					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 1, 0, 0},
-					{ size / 2.0f, -size / 2.0f,-size / 2.0f, 0, 0, -1},
-
-					{ size / 2.0f, -size / 2.0f, size / 2.0f, 1, 0, 0},
-					{ size / 2.0f, -size / 2.0f, size / 2.0f, 0, 0, 1},
-		};
-
-		indices = {
-					0, 1, 2, 1, 3, 2,
-					22, 12, 14, 22, 20, 12,
-					17, 13, 21, 9, 13, 17,
-					18, 8, 16, 10, 8, 18,
-					11, 19, 15, 15, 19, 23,
-					5, 6, 7, 4, 6, 5 
-		};
 	}
 
 	//COLLISION DETECTION

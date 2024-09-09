@@ -6,7 +6,7 @@ enum TextAlignment
 
 struct SingleText {
 	int usedLines;
-	const char *l[7];
+	const char *l[7];//aumentate le stringhe
 	int start;
 	int len;
 	int scene;
@@ -121,12 +121,10 @@ struct TextMaker {
 		
 		float PtoTsx = 2.0/800.0;
 		float PtoTsy = 2.0/600.0;
-		//todo
+
+		//settiamo a 7 uno per ogni stringa
 		float PtoTdx[7] = {-0.95, -0.95, -0.95 ,-0.95 ,-0.95 ,-0.95, -0.95};
-		/*for (auto& Txt : *Texts) {
-			
-			break;
-		}*/
+
 		float PtoTdy = -0.95;
 		
 		int minChar = 32;
@@ -140,10 +138,15 @@ struct TextMaker {
 		int ib = 0, k = 0;
 		for(auto& Txt : *Texts) {
 			Txt.start = ib;
+
+			//menu iniziale --> testo al centro (y)
 			if (Txt.scene == 0) {
 				tpy = Fonts[FontId].lineHeight * 6;
 			}
+			//risettiamo i valori dell'array per le righe che vengono usate
 			for (int i = 0; i < Txt.usedLines; i++) {
+				
+				//menu iniziale --> testo al centro (x)
 				if (Txt.scene == 0) {
 					PtoTdx[i] = -(0.035 * strlen(Txt.l[i]) / 2);
 				}
@@ -156,7 +159,6 @@ struct TextMaker {
 				for(int j = 0; j < strlen(Txt.l[i]); j++) {
 					int c = ((int)Txt.l[i][j]) - minChar;
 					if((c >= 0) && (c <= maxChar)) {
-//std::cout << k << " " << j << " " << i << " " << ib << " " << c << "\n";
 						CharData d = Fonts[FontId].P[c];
 						
 						int mainStride = VD.Bindings[0].stride;

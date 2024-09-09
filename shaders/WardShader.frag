@@ -84,7 +84,6 @@ vec3 light_color(vec3 pos, int i,float type){
 vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT, float alphaB) {
 
 	vec3 Diffuse = Md * clamp(dot(N, L),0.0,1.0);
-	//vec3 Specular = Ms * vec3(pow(max(dot(Norm, normalize(LD + EyeDir)),0.0), mubo.Pow));
 	vec3 H = normalize(L + V);
 	float el1 = (dot(H,T)/alphaT) * (dot(H,T)/alphaT);
 	float el2 = (dot(H,B)/alphaB) * (dot(H,B)/alphaB);
@@ -94,6 +93,7 @@ vec3 BRDF(vec3 V, vec3 N, vec3 L, vec3 T, vec3 B, vec3 Md, vec3 Ms, float alphaT
 	float denominator = 4.0 * PI * alphaT * alphaB * sqrt( dot(V, N) / dot( L, N));
 	vec3 Specular = Ms * numerator / denominator;
 
+    //clamp minimo a 0 cosi evito che diventi negativo
 	return clamp((Diffuse + Specular), 0.0, 1.0);
 }
 
@@ -109,26 +109,31 @@ void main() {
     	vec3 lightDir;
         vec3 lightColor;
 
+        //sole
     	lightDir = direct_light_dir(fragPos, 0);
         lightColor = direct_light_color(fragPos, 0);
 
     	RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor;
 
+        //fanali
     	lightDir = spot_light_dir(fragPos, 1);
         lightColor = spot_light_color(fragPos, 1);
 
         RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor * gubo.lightOn;
 
+        //fanali
         lightDir = spot_light_dir(fragPos, 2);
         lightColor = spot_light_color(fragPos, 2);
 
         RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor * gubo.lightOn;
-
+        
+        //luna
         lightDir = direct_light_dir(fragPos, 3);
         lightColor = direct_light_color(fragPos, 3);
 
         RendEqSol += BRDF(EyeDir, Norm, lightDir, Tan, Bitan, Albedo, specCol, 0.1f, 0.4f) * lightColor;
 
+        //lampioni
         for(int j = 4; j < NLIGHTS; j++){
                 lightDir = light_dir(fragPos, j, 1);
                 lightColor = light_color(fragPos, j, 1);

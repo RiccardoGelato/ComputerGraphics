@@ -145,6 +145,8 @@ vec3 BRDFToon(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
 
 vec3 BRDF(vec3 Albedo, vec3 Norm, vec3 EyeDir, vec3 LD) {
     vec3 result;
+    
+    //cambio di BRDF in base a quello scelto
     if(gubo.BDRFState == 1){
         result = BRDFNormal(Albedo, Norm, EyeDir, LD);
     }else{
@@ -159,6 +161,8 @@ void main() {
 	vec3 Norm = normalize(fragNorm);
 	vec3 EyeDir = normalize(gubo.eyePos - fragPos);
 	vec3 Albedo = texture(tex, fragUV).rgb;
+
+    //cambiamo la texture (se è la macchina) in base a quella scelta
 	if(mubo.isCar == 1){
         if(mubo.carTexture == 0){
             Albedo = texture(tex, fragUV).rgb;

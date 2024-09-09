@@ -15,11 +15,13 @@ layout(set = 1, binding = 0) uniform NormalMapParUniformBufferObject {
 } mubo;
 
 void main() {
+	//adatto la texture a coordinate sferiche della skybox
 	float yawstars = -(atan(fragTexCoord.x, fragTexCoord.z)/6.2831853 + 0.5);
-	float yaw = -(atan(fragTexCoord.x, fragTexCoord.z)/6.2831853 +mubo.Ang + 0.5);
+	float yaw = -(atan(fragTexCoord.x, fragTexCoord.z)/6.2831853 +mubo.Ang + 0.5); //permette di ruotare le nuvole
 	float pitch = -(atan(fragTexCoord.y, sqrt(fragTexCoord.x*fragTexCoord.x+fragTexCoord.z*fragTexCoord.z))/3.14159265+ 0.5);
 
 
+	//calcolo il colore della skybox
 	float sinSun;
 	if(mubo.sinSun < 0){
 	    sinSun = 0.0;
