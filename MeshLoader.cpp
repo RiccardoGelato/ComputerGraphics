@@ -672,14 +672,6 @@ class MeshLoader : public BaseProject {
 		//CONSTANT MOVEMENT PARAMETERS
 		const float ROT_SPEED = glm::radians(120.0f);
 		const float MOVE_SPEED = 2.0f;
-		
-		//CAMERA PARAMETERS
-		glm::vec3 CamPos = Pos;
-		glm::vec3 CamTarget = Pos;
-		static glm::vec3 dampedCamPos = CamPos;
-		static float camYaw = glm::radians(45.0f);
-    	static float camPitch = glm::radians(30.0f);
-		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
 
 		//CONSTANT CAMERA PARAMETERS
 		const float fixedCamDist = 10.0f;
@@ -820,6 +812,59 @@ class MeshLoader : public BaseProject {
 		if (currScene == 2) {
 			deltaT = 0;
 		}
+
+		//UPDATE CAR'S POSITION ******************************************************************************************************
+		//direzione della macchina
+		carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
+
+		//angolo di sterzata
+		int direction = 1;
+
+		if (carSpeed < 0) {
+			direction = -1;
+		}
+		if (carSpeed == 0) {
+			direction = 0;
+		}
+		steeringAngle = m.x * ROT_SPEED_CAR * deltaT * direction;
+
+		//raggio di curvatura
+		turningRadius = R / tan(steeringAngle);
+
+		//aggiorno la velocità e la limito ad una massima
+		carSpeed += m.z * ACC_CAR * deltaT;
+
+		if (carSpeed > MAX_SPEED) {
+			carSpeed = MAX_SPEED;
+		}if (carSpeed < -MAX_SPEED) {
+			carSpeed = -MAX_SPEED;
+		}
+
+		Pos += carSpeed * carDirection * deltaT;
+
+		//aggiorno la posizione se non collide con questo collider
+		ColliderQuad col;
+		col = updateCollider();
+
+		//VERIFICO COLLISIONE
+		if (CollisionQuad(col, colObstacle[0]) ||
+			CollisionQuad(col, colObstacle[1]) ||
+			CollisionQuad(col, colObstacle[2]) ||
+			CollisionQuad(col, colObstacle[3]) ||
+			CollisionQuad(col, colObstacle[4]))
+		{
+			Pos -= carSpeed * carDirection * deltaT;
+			carSpeed = 0.0f;
+		}
+
+		//CAMERA PARAMETERS******************************************************************************************
+		glm::vec3 CamPos = Pos;
+		glm::vec3 CamTarget = Pos;
+		static glm::vec3 dampedCamPos = CamPos;
+		static float camYaw = glm::radians(45.0f);
+		static float camPitch = glm::radians(30.0f);
+		glm::mat4 reverseRotation = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1, 0, 0));
+
 			
 		/* CAMERA MOVEMENT ******************************************************************************************** */
 		if(cameraType == 0){
@@ -829,7 +874,7 @@ class MeshLoader : public BaseProject {
 		}
 		else {
 			glm::mat4 M = glm::mat4(1.0f / 20.0f, 0, 0, 0,
-				0, -4.0f / 60.f, 0, 0,
+				0, -Ar / 20.f, 0, 0,
 				0, 0, 1.0f / (-500.0f - 500.0f), 0,
 				0, 0, -500.0f / (-500.0f - 500.0f), 1);
 			M = M * glm::mat4(1, 0, 0, 0,
@@ -864,49 +909,6 @@ class MeshLoader : public BaseProject {
 		BlinnUniformBufferObject uboCar{};
 
 		/* CAR MOVEMENT ******************************************************************************************** */
-		//direzione della macchina
-		carDirection = glm::vec3(cos(carYaw), 0, sin(carYaw));
-
-		//angolo di sterzata
-		int direction = 1;
-
-		if(carSpeed < 0 ){
-			direction = -1;
-		}
-		if(carSpeed == 0){
-			direction = 0;
-		}
-		steeringAngle = m.x * ROT_SPEED_CAR * deltaT * direction;
-
-		//raggio di curvatura
-		turningRadius = R / tan(steeringAngle);
-
-		//aggiorno la velocità e la limito ad una massima
-		carSpeed += m.z * ACC_CAR * deltaT;
-
-		if(carSpeed > MAX_SPEED) {
-			carSpeed = MAX_SPEED;
-		}if(carSpeed < -MAX_SPEED) {
-			carSpeed = -MAX_SPEED;
-		}
-
-		Pos += carSpeed * carDirection * deltaT;
-
-		//aggiorno la posizione se non collide con questo collider
-		ColliderQuad col;
-		col = updateCollider();
-
-		//VERIFICO COLLISIONE
-		if(CollisionQuad(col, colObstacle[0]) || 
-		   CollisionQuad(col, colObstacle[1]) || 
-		   CollisionQuad(col, colObstacle[2]) || 
-		   CollisionQuad(col, colObstacle[3]) ||
-		   CollisionQuad(col, colObstacle[4]))
-		{
-			Pos -= carSpeed * carDirection * deltaT;
-			carSpeed = 0.0f;
-		}
-
 		//aggiorno la velocità con l'attrito
 		decayFactor = FRICTION * deltaT;
 		if(carSpeed > decayFactor) {

@@ -174,15 +174,6 @@ void main() {
 	}
 
 	vec3 RendEqSol = vec3(0);
-	
-	/*
-	for(int j= 0; j < NLIGHTS; j++){
-	    vec3 lightDir = light_dir(fragPos, j, gubo.lightType[j].x);
-        vec3 lightColor = light_color(fragPos, j, gubo.lightType[j].x);
-
-    	RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
-	}*/
-
 
 	vec3 lightDir = light_dir(fragPos, 0, 0);
     vec3 lightColor = light_color(fragPos, 0, 0);
@@ -205,7 +196,7 @@ void main() {
     RendEqSol += BRDF(Albedo, Norm, EyeDir, lightDir) * lightColor;
 
     
-    for(int j = 4; j < NLIGHTS; j++){
+    for(int j = 4; j < 16; j++){
                 lightDir = light_dir(fragPos, j, 1);
                 lightColor = light_color(fragPos, j, 1);
 
